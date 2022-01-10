@@ -1,0 +1,49 @@
+/*
+ * Copyright 2021 ISP RAS (http://www.ispras.ru)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
+ * the License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+package idct;
+
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+import com.maxeler.maxcompiler.v2.managers.custom.DFELink;
+import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
+
+import com.maxeler.platform.max5.manager.MAX5CManager;;
+
+public class IDCTManager extends MAX5CManager {
+
+	public static final String kernelName = "IDCTKernel";
+	public static final int blockDim = 8;
+
+	public IDCTManager(EngineParameters params) {
+		super(params);
+
+		final KernelBlock kernel = addKernel(new IDCTKernel(makeKernelParameters(kernelName), blockDim));
+		final DFELink in = addStreamFromCPU("block_in");
+		kernel.getInput("block_in") <== in;
+
+		final DFELink out = addStreamToCPU("block_out");
+		out <== kernel.getOutput("block_out");
+		
+		addMaxFileConstant("blockDim", blockDim);
+	}
+
+	public static void main(final String[] argv) {
+		final EngineParameters params = new EngineParameters(argv);
+		final IDCTManager manager = new IDCTManager(params);
+		manager.build();
+	}
+
+}
