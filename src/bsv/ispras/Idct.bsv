@@ -74,10 +74,74 @@ function Action printVector(String s, DataType data);
   endaction
 endfunction
 
+/* init/result test data functions */
+
+function ShortType idct0_test_init(Integer x);
+  return fromInteger((x == 0) ? 23 : ((x == 1) ? -1 : ((x == 2) ? -2 : 0)));
+endfunction
+
+function ShortType idct0_test_want(Integer x);
+  return fromInteger((x % 8 == 0) ? 2 : 3);
+endfunction
+
+function ShortType idct1_test_init(Integer x);
+  return fromInteger((x == 0) ? 13 : ((x == 1) ? -7 : (x == 9) ? 2 : 0));
+endfunction
+
+function ShortType idct1_test_want(Integer x);
+  Integer y;
+  if ((x == 32) || (x == 40) || (x == 41) || (x == 48)
+      || (x == 49) || (x == 56) || (x == 57)) begin
+    y = 0;
+  end
+  else if ((x == 23) || (x == 30)
+      || (x == 31) || (x == 38)
+      || (x == 39) || (x == 46)
+      || (x == 47) || (x == 53)
+      || (x == 54) || (x == 55)
+      || (x == 61) || (x == 62) || (x == 63)) begin
+    y = 3;
+  end
+  else begin
+    y = (x % 8 < 4) ? 1 : 2;
+  end
+
+  return fromInteger(y);
+endfunction
+
+function ShortType idct2_test_init(Integer x);
+  return fromInteger((x == 0) ? -166
+      : (x == 1) ? -7
+      : (x == 2 || x == 3) ? -4
+      : (x == 8 || x == 16) ? -2 : 0);
+endfunction
+
+function ShortType idct2_test_want(Integer x);
+  return fromInteger((x == 0 || x == 8) ? -24
+      : (x == 31 || x == 39 || x == 47 || x == 55) ? -19
+      : (x == 1 || x == 16 || x == 24 || x == 32
+          || x == 40 || x == 48 || x == 56) ? -23
+      : (x == 9 || x == 17 || x == 25 || x == 33
+          || x == 41 || x == 49 || x == 57) ? -22
+      : (x == 2 || x == 3 || x == 4 || x == 5 || x == 6
+          || x == 10 || x == 12 || x == 13
+          || x == 14 || x == 18 || x == 21) ? -21 : -20);
+endfunction
+
 interface Idct_iface#(type aType);
   method Action start(aType x);
   method ActionValue#(aType) result();
 endinterface: Idct_iface
+
+interface IdctAxiWrapper_iface#(type aType);
+  method Action send(aType x);
+  method ActionValue#(aType) recv();
+endinterface: IdctAxiWrapper_iface
+
+interface IdctDataWrapper_iface;
+  method Action start();
+  method ActionValue#(Bool) result();
+endinterface: IdctDataWrapper_iface
 
 (* synthesize *)
 module mkIdct (Idct_iface#(DataType));
@@ -260,64 +324,62 @@ module mkIdct (Idct_iface#(DataType));
 endmodule: mkIdct
 
 (* synthesize *)
+module mkIdctDataWrapper(IdctDataWrapper_iface);
+
+  Idct_iface#(DataType) idct <- mkIdct;
+  Reg#(Bool) done <- mkReg(False);
+
+  method Action start();
+    DataType in = genWith(idct0_test_init);
+    idct.start(in);
+    done <= True;
+  endmethod
+
+  method ActionValue#(Bool) result() if (done);
+    DataType out <- idct.result();
+    DataType want = genWith(idct0_test_want);
+    return (out == want);
+  endmethod
+
+endmodule: mkIdctDataWrapper
+
+(* synthesize *)
+module mkIdctAxiWrapper(IdctAxiWrapper_iface#(ShortType));
+
+  Reg#(int) count <- mkReg(0);
+  Reg#(State) state <- mkReg(IDLE);
+  Idct_iface#(DataType) idct <- mkIdct;
+  DataReg elements <- replicateM(mkRegU);
+  Int#(32) size = fromInteger(valueOf(DataSize));
+
+  rule run ((state == IDLE) && (count == size));
+    idct.start(readVReg(elements));
+    state <= HAVE_DATA;
+  endrule
+
+  rule get_result ((state == HAVE_DATA) && (count == size));
+    DataType result <- idct.result();
+    writeVReg(elements, result);
+    count <= 0;
+    state <= DONE;
+  endrule
+
+  method Action send(ShortType x) if ((state == IDLE) && (count < size));
+    elements[count] <= x;
+    count <= count + 1;
+  endmethod
+
+  method ActionValue#(ShortType) recv() if ((state == DONE) && (count < size));
+    count <= count + 1;
+    return elements[count];
+  endmethod
+endmodule: mkIdctAxiWrapper
+
+(* synthesize *)
 module mkTbench(Empty);
 
   Reg#(int) testNum <- mkReg(0);
   Idct_iface#(DataType) idct <- mkIdct;
-
-  /* init/result test data functions */
-
-  function ShortType idct0_test_init(Integer x);
-    return fromInteger((x == 0) ? 23 : ((x == 1) ? -1 : ((x == 2) ? -2 : 0)));
-  endfunction
-
-  function ShortType idct0_test_want(Integer x);
-    return fromInteger((x % 8 == 0) ? 2 : 3);
-  endfunction
-
-  function ShortType idct1_test_init(Integer x);
-    return fromInteger((x == 0) ? 13 : ((x == 1) ? -7 : (x == 9) ? 2 : 0));
-  endfunction
-
-  function ShortType idct1_test_want(Integer x);
-    Integer y;
-    if ((x == 32) || (x == 40) || (x == 41) || (x == 48)
-        || (x == 49) || (x == 56) || (x == 57)) begin
-      y = 0;
-    end
-    else if ((x == 23) || (x == 30)
-        || (x == 31) || (x == 38)
-        || (x == 39) || (x == 46)
-        || (x == 47) || (x == 53)
-        || (x == 54) || (x == 55)
-        || (x == 61) || (x == 62) || (x == 63)) begin
-      y = 3;
-    end
-    else begin
-      y = (x % 8 < 4) ? 1 : 2;
-    end
-
-    return fromInteger(y);
-  endfunction
-
-  function ShortType idct2_test_init(Integer x);
-    return fromInteger((x == 0) ? -166
-        : (x == 1) ? -7
-        : (x == 2 || x == 3) ? -4
-        : (x == 8 || x == 16) ? -2 : 0);
-  endfunction
-
-  function ShortType idct2_test_want(Integer x);
-    return fromInteger((x == 0 || x == 8) ? -24
-        : (x == 31 || x == 39 || x == 47 || x == 55) ? -19
-        : (x == 1 || x == 16 || x == 24 || x == 32
-            || x == 40 || x == 48 || x == 56) ? -23
-        : (x == 9 || x == 17 || x == 25 || x == 33
-            || x == 41 || x == 49 || x == 57) ? -22
-        : (x == 2 || x == 3 || x == 4 || x == 5 || x == 6
-            || x == 10 || x == 12 || x == 13
-            || x == 14 || x == 18 || x == 21) ? -21 : -20);
-  endfunction
 
   /* start/end test rules */
 
