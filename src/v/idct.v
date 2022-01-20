@@ -1,5 +1,37 @@
+/*
+ * Copyright 2022 ISP RAS (http://www.ispras.ru)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
+ * the License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
-`define ML 16
+ /**********************************************************/
+ /* inverse two dimensional DCT, Chen-Wang algorithm       */
+ /* (cf. IEEE ASSP-32, pp. 803-816, Aug. 1984)             */
+ /* 32-bit integer arithmetic (8 bit coefficients)         */
+ /* 11 mults, 29 adds per DCT                              */
+ /*                                      sE, 18.8.91       */
+ /**********************************************************/
+ /* coefficients extended to 12 bit for IEEE1180-1990      */
+ /* compliance                           sE,  2.1.94       */
+ /**********************************************************/
+
+// Input width
+`define WIN 12
+// Width of communication channel between calculators for rows and columns
+`define WIM 13
+// Output width
+`define WOUT 9
+// IDCT coefficients
 `define W1 2841
 `define W2 2676
 `define W3 2408
@@ -7,34 +39,110 @@
 `define W6 1108
 `define W7 565
 
-`define G0 'h000000000000000100000001ffff00060000ffff0000ffff0001fffd0004fff50001000200000003fffe0006fff9001afffffffe0001fffc0003fff8000bffdf00020004ffff0007fffb000dffef003cfffefffb0001fff70007fff00017ffb90005000cfffd0015fff10027ffcc00b0fffcfff40005ffea0013ffd6003fff53
+// Reference values for tests
+`define REF0 {9'h0,   9'h0,   9'h0,   9'h1,   9'h0,   9'h1,   9'h1ff, 9'h6,\
+              9'h0,   9'h1ff, 9'h0,   9'h1ff, 9'h1,   9'h1fd, 9'h4,   9'h1f5,\
+              9'h1,   9'h2,   9'h0,   9'h3,   9'h1fe, 9'h6,   9'h1f9, 9'h1a,\
+              9'h1ff, 9'h1fe, 9'h1,   9'h1fc, 9'h3,   9'h1f8, 9'hb,   9'h1df,\
+              9'h2,   9'h4,   9'h1ff, 9'h7,   9'h1fb, 9'hd,   9'h1ef, 9'h3c,\
+              9'h1fe, 9'h1fb, 9'h1,   9'h1f7, 9'h7,   9'h1f0, 9'h17,  9'h1b9,\
+              9'h5,   9'hc,   9'h1fd, 9'h15,  9'h1f1, 9'h27,  9'h1cc, 9'hb0,\
+              9'h1fc, 9'h1f4, 9'h5,   9'h1ea, 9'h13,  9'h1d6, 9'h3f,  9'h153}
 
-`define G1 'h000000000000ffff0000ffff0001fffa0000000100000001ffff0003fffc000bfffffffe0000fffd0002fffa0007ffe600010002ffff0004fffd0008fff50021fffefffc0001fff90005fff30011ffc400020005ffff0009fff90010ffe90047fffbfff40003ffeb000fffd90034ff500004000cfffb0016ffed002affc100ad
+`define REF1 {9'h0,   9'h0,   9'h0,   9'h1ff, 9'h0,   9'h1ff, 9'h1,   9'h1fa,\
+              9'h0,   9'h1,   9'h0,   9'h1,   9'h1ff, 9'h3,   9'h1fc, 9'hb,\
+              9'h1ff, 9'h1fe, 9'h0,   9'h1fd, 9'h2,   9'h1fa, 9'h7,   9'h1e6,\
+              9'h1,   9'h2,   9'h1ff, 9'h4,   9'h1fd, 9'h8,   9'h1f5, 9'h21,\
+              9'h1fe, 9'h1fc, 9'h1,   9'h1f9, 9'h5,   9'h1f3, 9'h11,  9'h1c4,\
+              9'h2,   9'h5,   9'h1ff, 9'h9,   9'h1f9, 9'h10,  9'h1e9, 9'h47,\
+              9'h1fb, 9'h1f4, 9'h3,   9'h1eb, 9'hf,   9'h1d9, 9'h34,  9'h150,\
+              9'h4,   9'hc,   9'h1fb, 9'h16,  9'h1ed, 9'h2a,  9'h1c1, 9'had}
 
-`define G2 'h0003000300030003000300030003000200030003000300030003000300030002000300030003000300030003000300020003000300030003000300030003000200030003000300030003000300030002000300030003000300030003000300020003000300030003000300030003000200030003000300030003000300030002
+`define REF2 {9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2,\
+              9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2,\
+              9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2,\
+              9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2,\
+              9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2,\
+              9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2,\
+              9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2,\
+              9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h3, 9'h2}
 
-`define G3 'h0003000300030002000100010000000000030003000300020001000100000000000300030002000200010001000000000003000300020002000100010001000000030003000200020001000100010001000300020002000200010001000100010002000200020002000100010001000100020002000200020001000100010001
+`define REF3 {9'h3, 9'h3, 9'h3, 9'h2, 9'h1, 9'h1, 9'h0, 9'h0,\
+              9'h3, 9'h3, 9'h3, 9'h2, 9'h1, 9'h1, 9'h0, 9'h0,\
+              9'h3, 9'h3, 9'h2, 9'h2, 9'h1, 9'h1, 9'h0, 9'h0,\
+              9'h3, 9'h3, 9'h2, 9'h2, 9'h1, 9'h1, 9'h1, 9'h0,\
+              9'h3, 9'h3, 9'h2, 9'h2, 9'h1, 9'h1, 9'h1, 9'h1,\
+              9'h3, 9'h2, 9'h2, 9'h2, 9'h1, 9'h1, 9'h1, 9'h1,\
+              9'h2, 9'h2, 9'h2, 9'h2, 9'h1, 9'h1, 9'h1, 9'h1,\
+              9'h2, 9'h2, 9'h2, 9'h2, 9'h1, 9'h1, 9'h1, 9'h1}
 
-`define G4 'hffecffecffecffecffecffecffeaffe9ffedffecffecffecffecffecffeaffe9ffedffecffecffecffecffecffeaffe9ffedffecffecffecffecffecffeaffe9ffedffecffecffecffecffecffeaffe9ffecffecffebffecffecffebffeaffe9ffecffebffebffebffecffebffeaffe8ffecffebffebffebffebffebffe9ffe8
+`define REF4 {9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ea, 9'h1e9,\
+              9'h1ed, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ea, 9'h1e9,\
+              9'h1ed, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ea, 9'h1e9,\
+              9'h1ed, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ea, 9'h1e9,\
+              9'h1ed, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ec, 9'h1ea, 9'h1e9,\
+              9'h1ec, 9'h1ec, 9'h1eb, 9'h1ec, 9'h1ec, 9'h1eb, 9'h1ea, 9'h1e9,\
+              9'h1ec, 9'h1eb, 9'h1eb, 9'h1eb, 9'h1ec, 9'h1eb, 9'h1ea, 9'h1e8,\
+              9'h1ec, 9'h1eb, 9'h1eb, 9'h1eb, 9'h1eb, 9'h1eb, 9'h1e9, 9'h1e8}
 
-`define G5 'hffdbffdaffdfffe2fff4fff7ffd1ffd4ffccffd2ffe6ffeffff2ffebffdaffd8ffbeffd4ffdffff1fffcffceffd5ffd7ffd6ffd5ffe1ffedfff8ffcbffd9ffe2ffddffdfffdffff4ffe0ffcfffdcffe9ffdeffeaffeefffbffd3ffc3ffe1fff2ffefffe8fff2fff5ffb7ffd1ffe40005fff8ffeaffefffd5ffc3ffe6fff60015
+`define IN5 { -12'd8,   12'd0,   12'd0,   12'd0,   12'd0,   12'd0,   12'd0,   12'd6,\
+              -12'd8,  -12'd10,  12'd10,  12'd0,   12'd0,  -12'd6,   12'd0,  -12'd4,\
+               12'd0,   12'd0,   12'd0,  -12'd6,  -12'd5,   12'd0,   12'd9,   12'd4,\
+              -12'd6,   12'd8,   12'd9,   12'd0,  -12'd24,  12'd15,  12'd4,   12'd7,\
+              -12'd15,  12'd0,   12'd7,   12'd0,  -12'd2,   12'd0,   12'd18, -12'd2,\
+               12'd12,  12'd30,  12'd0,  -12'd24, -12'd16,  12'd32,  12'd8,   12'd21,\
+               12'd16,  12'd5,  -12'd25, -12'd4,   12'd44,  12'd85, -12'd6,   12'd28,\
+               12'd5,   12'd0,  -12'd6,   12'd26,  12'd47, -12'd11,  12'd8,  -12'd240}
 
-module idctrow(input [`ML-1:0] i0, input [`ML-1:0] i1, input [`ML-1:0] i2, input [`ML-1:0] i3,
-               input [`ML-1:0] i4, input [`ML-1:0] i5, input [`ML-1:0] i6, input [`ML-1:0] i7,
-               output [`ML-1:0] b0, output [`ML-1:0] b1, output [`ML-1:0] b2, output [`ML-1:0] b3,
-               output [`ML-1:0] b4, output [`ML-1:0] b5, output [`ML-1:0] b6, output [`ML-1:0] b7);
+`define REF5 {9'h1db, 9'h1da, 9'h1df, 9'h1e2, 9'h1f4, 9'h1f7, 9'h1d1, 9'h1d4,\
+              9'h1cc, 9'h1d2, 9'h1e6, 9'h1ef, 9'h1f2, 9'h1eb, 9'h1da, 9'h1d8,\
+              9'h1be, 9'h1d4, 9'h1df, 9'h1f1, 9'h1fc, 9'h1ce, 9'h1d5, 9'h1d7,\
+              9'h1d6, 9'h1d5, 9'h1e1, 9'h1ed, 9'h1f8, 9'h1cb, 9'h1d9, 9'h1e2,\
+              9'h1dd, 9'h1df, 9'h1df, 9'h1f4, 9'h1e0, 9'h1cf, 9'h1dc, 9'h1e9,\
+              9'h1de, 9'h1ea, 9'h1ee, 9'h1fb, 9'h1d3, 9'h1c3, 9'h1e1, 9'h1f2,\
+              9'h1ef, 9'h1e8, 9'h1f2, 9'h1f5, 9'h1b7, 9'h1d1, 9'h1e4, 9'h005,\
+              9'h1f8, 9'h1ea, 9'h1ef, 9'h1d5, 9'h1c3, 9'h1e6, 9'h1f6, 9'h015}
 
-wire signed [`ML*2-1:0] x [7:0][3:0];
+// Map of 64-element array to the correspondent bit vector
+`define ARRAY_TO_BITVECTOR(a) \
+ {a[63], a[62], a[61], a[60], a[59], a[58], a[57], a[56],\
+  a[55], a[54], a[53], a[52], a[51], a[50], a[49], a[48],\
+  a[47], a[46], a[45], a[44], a[43], a[42], a[41], a[40],\
+  a[39], a[38], a[37], a[36], a[35], a[34], a[33], a[32],\
+  a[31], a[30], a[29], a[28], a[27], a[26], a[25], a[24],\
+  a[23], a[22], a[21], a[20], a[19], a[18], a[17], a[16],\
+  a[15], a[14], a[13], a[12], a[11], a[10], a[09], a[08],\
+  a[07], a[06], a[05], a[04], a[03], a[02], a[01], a[00]}
+
+// Test check
+`define TEST(number) \
+  #1; \
+  out_reg <= out; \
+  #1; \
+  if (out_reg != `REF``number) begin \
+    $display("[FAIL] test #number:"); \
+    $display("expected value is 0x%x\nreceived value is 0x%x", `REF``number, out_reg); \
+    $finish; \
+  end else begin \
+    $display("[OK] test #number: out_reg is 0x%x", out_reg); \
+  end
+
+module idctrow(input [`WIN-1:0] i0, input [`WIN-1:0] i1, input [`WIN-1:0] i2, input [`WIN-1:0] i3,
+               input [`WIN-1:0] i4, input [`WIN-1:0] i5, input [`WIN-1:0] i6, input [`WIN-1:0] i7,
+               output [`WIM-1:0] b0, output [`WIM-1:0] b1, output [`WIM-1:0] b2, output [`WIM-1:0] b3,
+               output [`WIM-1:0] b4, output [`WIM-1:0] b5, output [`WIM-1:0] b6, output [`WIM-1:0] b7);
+
+wire signed [`WIN*2-1:0] x [7:0][3:0];
 wire return_zero;
 
-wire [`ML-1:0] b0;
-wire [`ML-1:0] b1;
-wire [`ML-1:0] b2;
-wire [`ML-1:0] b3;
-wire [`ML-1:0] b4;
-wire [`ML-1:0] b5;
-wire [`ML-1:0] b6;
-wire [`ML-1:0] b7;
+wire [`WIM-1:0] b0;
+wire [`WIM-1:0] b1;
+wire [`WIM-1:0] b2;
+wire [`WIM-1:0] b3;
+wire [`WIM-1:0] b4;
+wire [`WIM-1:0] b5;
+wire [`WIM-1:0] b6;
+wire [`WIM-1:0] b7;
 
 // zeroth stage
 assign x[0][0] = ($signed(i0) << 11) + 128;
@@ -49,8 +157,8 @@ assign x[7][0] = $signed(i3);
 assign br = !(x[1][0] | x[2][0] | x[3][0] | x[4][0] | x[5][0] | x[6][0] | x[7][0]);
 
 // first stage
-wire signed [`ML*2-1:0] tmp0;
-wire signed [`ML*2-1:0] tmp1;
+wire signed [`WIN*2-1:0] tmp0;
+wire signed [`WIN*2-1:0] tmp1;
 assign x[0][1] = x[0][0];
 assign x[1][1] = x[1][0];
 assign x[2][1] = x[2][0];
@@ -63,8 +171,8 @@ assign x[6][1] = tmp1 - (`W3 - `W5) * x[6][0];
 assign x[7][1] = tmp1 - (`W3 + `W5) * x[7][0];
 
 // second stage
-wire signed [`ML*2-1:0] tmp2;
-wire signed [`ML*2-1:0] tmp3;
+wire signed [`WIN*2-1:0] tmp2;
+wire signed [`WIN*2-1:0] tmp3;
 assign x[0][2] = x[0][1] - x[1][1];
 assign x[1][2] = x[4][1] + x[6][1];
 assign tmp2 = `W6 * (x[3][1] + x[2][1]);
@@ -77,7 +185,7 @@ assign x[7][2] = x[7][1];
 assign tmp3 = x[0][1] + x[1][1];
 
 // third stage
-wire signed [`ML*2-1:0] tmp4;
+wire signed [`WIN*2-1:0] tmp4;
 assign x[0][3] = x[0][2] - x[2][2];
 assign x[1][3] = x[1][2];
 assign x[2][3] = (181 * (x[4][2] + x[5][2]) + 128) >>> 8;
@@ -89,35 +197,35 @@ assign x[7][3] = tmp3 +  x[3][2];
 assign tmp4    = tmp3 - x[3][2];
 
 // fourth stage
-wire signed [`ML*2-1:0] tmp5;
+wire signed [`WIN*2-1:0] tmp5;
 assign tmp5 = $signed(i0) << 3;
-assign b0 = br ? tmp5[`ML-1:0] : (x[7][3] + x[1][3]) >>> 8;
-assign b1 = br ? tmp5[`ML-1:0] : (x[3][3] + x[2][3]) >>> 8;
-assign b2 = br ? tmp5[`ML-1:0] : (x[0][3] + x[4][3]) >>> 8;
-assign b3 = br ? tmp5[`ML-1:0] : (   tmp4 + x[6][3]) >>> 8;
-assign b4 = br ? tmp5[`ML-1:0] : (   tmp4 - x[6][3]) >>> 8;
-assign b5 = br ? tmp5[`ML-1:0] : (x[0][3] - x[4][3]) >>> 8;
-assign b6 = br ? tmp5[`ML-1:0] : (x[3][3] - x[2][3]) >>> 8;
-assign b7 = br ? tmp5[`ML-1:0] : (x[7][3] - x[1][3]) >>> 8;
+assign b0 = br ? tmp5[`WIM-1:0] : (x[7][3] + x[1][3]) >>> 8;
+assign b1 = br ? tmp5[`WIM-1:0] : (x[3][3] + x[2][3]) >>> 8;
+assign b2 = br ? tmp5[`WIM-1:0] : (x[0][3] + x[4][3]) >>> 8;
+assign b3 = br ? tmp5[`WIM-1:0] : (   tmp4 + x[6][3]) >>> 8;
+assign b4 = br ? tmp5[`WIM-1:0] : (   tmp4 - x[6][3]) >>> 8;
+assign b5 = br ? tmp5[`WIM-1:0] : (x[0][3] - x[4][3]) >>> 8;
+assign b6 = br ? tmp5[`WIM-1:0] : (x[3][3] - x[2][3]) >>> 8;
+assign b7 = br ? tmp5[`WIM-1:0] : (x[7][3] - x[1][3]) >>> 8;
 
 endmodule // idctrow
 
-module idctcol(input [`ML-1:0] i0, input [`ML-1:0] i1, input [`ML-1:0] i2, input [`ML-1:0] i3,
-               input [`ML-1:0] i4, input [`ML-1:0] i5, input [`ML-1:0] i6, input [`ML-1:0] i7,
-               output [`ML-1:0] b0, output [`ML-1:0] b1, output [`ML-1:0] b2, output [`ML-1:0] b3,
-               output [`ML-1:0] b4, output [`ML-1:0] b5, output [`ML-1:0] b6, output [`ML-1:0] b7);
+module idctcol(input [`WIM-1:0] i0, input [`WIM-1:0] i1, input [`WIM-1:0] i2, input [`WIM-1:0] i3,
+               input [`WIM-1:0] i4, input [`WIM-1:0] i5, input [`WIM-1:0] i6, input [`WIM-1:0] i7,
+               output [`WOUT-1:0] b0, output [`WOUT-1:0] b1, output [`WOUT-1:0] b2, output [`WOUT-1:0] b3,
+               output [`WOUT-1:0] b4, output [`WOUT-1:0] b5, output [`WOUT-1:0] b6, output [`WOUT-1:0] b7);
 
-wire signed [`ML*2-1:0] x [7:0][3:0];
+wire signed [`WIM*2-1:0] x [7:0][3:0];
 wire return_zero;
 
-wire [`ML-1:0] b0;
-wire [`ML-1:0] b1;
-wire [`ML-1:0] b2;
-wire [`ML-1:0] b3;
-wire [`ML-1:0] b4;
-wire [`ML-1:0] b5;
-wire [`ML-1:0] b6;
-wire [`ML-1:0] b7;
+wire [`WOUT-1:0] b0;
+wire [`WOUT-1:0] b1;
+wire [`WOUT-1:0] b2;
+wire [`WOUT-1:0] b3;
+wire [`WOUT-1:0] b4;
+wire [`WOUT-1:0] b5;
+wire [`WOUT-1:0] b6;
+wire [`WOUT-1:0] b7;
 
 // zeroth stage
 assign x[0][0] = ($signed(i0) << 8) + 8192;
@@ -132,8 +240,8 @@ assign x[7][0] = $signed(i3);
 assign br = !(x[1][0] | x[2][0] | x[3][0] | x[4][0] | x[5][0] | x[6][0] | x[7][0]);
 
 // first stage
-wire signed [`ML*2-1:0] tmp0;
-wire signed [`ML*2-1:0] tmp1;
+wire signed [`WIM*2-1:0] tmp0;
+wire signed [`WIM*2-1:0] tmp1;
 assign x[0][1] = x[0][0];
 assign x[1][1] = x[1][0];
 assign x[2][1] = x[2][0];
@@ -146,8 +254,8 @@ assign x[6][1] = (tmp1 - (`W3 - `W5) * x[6][0]) >>> 3;
 assign x[7][1] = (tmp1 - (`W3 + `W5) * x[7][0]) >>> 3;
 
 // second stage
-wire signed [`ML*2-1:0] tmp2;
-wire signed [`ML*2-1:0] tmp3;
+wire signed [`WIM*2-1:0] tmp2;
+wire signed [`WIM*2-1:0] tmp3;
 assign x[0][2] = x[0][1] - x[1][1];
 assign x[1][2] = x[4][1] + x[6][1];
 assign tmp2 = `W6 * (x[3][1] + x[2][1]) + 4;
@@ -160,7 +268,7 @@ assign x[7][2] = x[7][1];
 assign tmp3 = x[0][1] + x[1][1];
 
 // third stage
-wire signed [`ML*2-1:0] tmp4;
+wire signed [`WIM*2-1:0] tmp4;
 assign x[0][3] = x[0][2] - x[2][2];
 assign x[1][3] = x[1][2];
 assign x[2][3] = (181 * (x[4][2] + x[5][2]) + 128) >>> 8;
@@ -172,173 +280,120 @@ assign x[7][3] = tmp3 + x[3][2];
 assign tmp4    = tmp3 - x[3][2];
 
 // fourth stage
-wire signed [`ML-1:0] tmp5 = iclp16(($signed(i0) + 32) >>> 6);
-assign b0 = br ? tmp5 : iclp16((x[7][3] + x[1][3]) >>> 14);
-assign b1 = br ? tmp5 : iclp16((x[3][3] + x[2][3]) >>> 14);
-assign b2 = br ? tmp5 : iclp16((x[0][3] + x[4][3]) >>> 14);
-assign b3 = br ? tmp5 : iclp16((   tmp4 + x[6][3]) >>> 14);
-assign b4 = br ? tmp5 : iclp16((   tmp4 - x[6][3]) >>> 14);
-assign b5 = br ? tmp5 : iclp16((x[0][3] - x[4][3]) >>> 14);
-assign b6 = br ? tmp5 : iclp16((x[3][3] - x[2][3]) >>> 14);
-assign b7 = br ? tmp5 : iclp16((x[7][3] - x[1][3]) >>> 14);
+wire signed [`WOUT-1:0] tmp5 = iclp13(($signed(i0) + 32) >>> 6);
+assign b0 = br ? tmp5 : iclp13((x[7][3] + x[1][3]) >>> 14);
+assign b1 = br ? tmp5 : iclp13((x[3][3] + x[2][3]) >>> 14);
+assign b2 = br ? tmp5 : iclp13((x[0][3] + x[4][3]) >>> 14);
+assign b3 = br ? tmp5 : iclp13((   tmp4 + x[6][3]) >>> 14);
+assign b4 = br ? tmp5 : iclp13((   tmp4 - x[6][3]) >>> 14);
+assign b5 = br ? tmp5 : iclp13((x[0][3] - x[4][3]) >>> 14);
+assign b6 = br ? tmp5 : iclp13((x[3][3] - x[2][3]) >>> 14);
+assign b7 = br ? tmp5 : iclp13((x[7][3] - x[1][3]) >>> 14);
 
-function [15:0] iclp16;
-  input [15:0] in;
+function [`WOUT-1:0] iclp13;
+  input [12:0] in;
   begin
-    if (in[15] == 1 && in[14:8] != 7'h7F)
-      iclp16 = 8'h80;
-    else if (in[15] == 0 && in [14:8] != 0)
-      iclp16 = 8'h7F;
+    if (in[12] == 1 && in[11:8] != 4'hF)
+      iclp13 = `WOUT'h80;
+    else if (in[12] == 0 && in[11:8] != 0)
+      iclp13 = `WOUT'h7F;
     else
-      iclp16 = in;
+      iclp13 = in[`WOUT-1:0];
   end
 endfunction
 
 endmodule // idctcol
 
 
-module Fast_IDCT(input [`ML*8*8-1:0] in, output [`ML*8*8-1:0] out);
+module Fast_IDCT(input [`WIN*8*8-1:0] in, output [`WOUT*8*8-1:0] out);
 
-wire [`ML*8*8-1:0] ws;
-wire [`ML*8*8-1:0] out;
+wire [`WIM*8*8-1:0] rtc;
+wire [`WOUT*8*8-1:0] out;
 
 genvar i;
 generate for (i=1; i<8*8; i=i+8) begin
-    //b[0]         b[1]         b[2]            b[3]            b[4]            b[5]            b[6]            b[7]
-    //b[8]
-    //                                                                                                          b[63]
-    //1*x-1:0*x	   2*x-1:1*x	3*x-1:2*x	4*x-1:3*x	5*x-1:4*x	6*x-1:5*x	7*x-1:6*x	8*x-1:7*x
-    //9*x-1:8*x
-    //                                                                                                         64*x-1:63*x
-    idctrow ir(in[(i+0)*`ML-1 : (i-1)*`ML],
-               in[(i+1)*`ML-1 : (i+0)*`ML],
-               in[(i+2)*`ML-1 : (i+1)*`ML],
-               in[(i+3)*`ML-1 : (i+2)*`ML],
-               in[(i+4)*`ML-1 : (i+3)*`ML],
-               in[(i+5)*`ML-1 : (i+4)*`ML],
-               in[(i+6)*`ML-1 : (i+5)*`ML],
-               in[(i+7)*`ML-1 : (i+6)*`ML],
-               ws[(i+0)*`ML-1 : (i-1)*`ML],
-               ws[(i+1)*`ML-1 : (i+0)*`ML],
-               ws[(i+2)*`ML-1 : (i+1)*`ML],
-               ws[(i+3)*`ML-1 : (i+2)*`ML],
-               ws[(i+4)*`ML-1 : (i+3)*`ML],
-               ws[(i+5)*`ML-1 : (i+4)*`ML],
-               ws[(i+6)*`ML-1 : (i+5)*`ML],
-               ws[(i+7)*`ML-1 : (i+6)*`ML]);
-    //b[0]	b[8]	b[16]					b[56]
-    //b[1]
-    //                                                          b[63]
-    //(1+8*0)*x-1:(0+8*0)*x (1+8*1)*x-1:(0+8*1)*x (1+8*2)*x-1:(0+8*2)*x     (1+8*7)*x-1:(0+8*7)*x
-    //(2+8*0)*x-1:(1+8*0)*x
-    //                                                                      (8+8*7)*x-1:(7+8*7)*x
+    idctrow ir(in[(i+0)*`WIN-1 : (i-1)*`WIN],
+               in[(i+1)*`WIN-1 : (i+0)*`WIN],
+               in[(i+2)*`WIN-1 : (i+1)*`WIN],
+               in[(i+3)*`WIN-1 : (i+2)*`WIN],
+               in[(i+4)*`WIN-1 : (i+3)*`WIN],
+               in[(i+5)*`WIN-1 : (i+4)*`WIN],
+               in[(i+6)*`WIN-1 : (i+5)*`WIN],
+               in[(i+7)*`WIN-1 : (i+6)*`WIN],
+               rtc[(i+0)*`WIM-1 : (i-1)*`WIM],
+               rtc[(i+1)*`WIM-1 : (i+0)*`WIM],
+               rtc[(i+2)*`WIM-1 : (i+1)*`WIM],
+               rtc[(i+3)*`WIM-1 : (i+2)*`WIM],
+               rtc[(i+4)*`WIM-1 : (i+3)*`WIM],
+               rtc[(i+5)*`WIM-1 : (i+4)*`WIM],
+               rtc[(i+6)*`WIM-1 : (i+5)*`WIM],
+               rtc[(i+7)*`WIM-1 : (i+6)*`WIM]);
 end
 endgenerate
 generate for (i=1; i<=8; i=i+1) begin
-    idctcol ic(ws[(i+8*0)*`ML-1 : (i-1+8*0)*`ML],
-               ws[(i+8*1)*`ML-1 : (i-1+8*1)*`ML],
-               ws[(i+8*2)*`ML-1 : (i-1+8*2)*`ML],
-               ws[(i+8*3)*`ML-1 : (i-1+8*3)*`ML],
-               ws[(i+8*4)*`ML-1 : (i-1+8*4)*`ML],
-               ws[(i+8*5)*`ML-1 : (i-1+8*5)*`ML],
-               ws[(i+8*6)*`ML-1 : (i-1+8*6)*`ML],
-               ws[(i+8*7)*`ML-1 : (i-1+8*7)*`ML],
-               out[(i+8*0)*`ML-1 : (i-1+8*0)*`ML],
-               out[(i+8*1)*`ML-1 : (i-1+8*1)*`ML],
-               out[(i+8*2)*`ML-1 : (i-1+8*2)*`ML],
-               out[(i+8*3)*`ML-1 : (i-1+8*3)*`ML],
-               out[(i+8*4)*`ML-1 : (i-1+8*4)*`ML],
-               out[(i+8*5)*`ML-1 : (i-1+8*5)*`ML],
-               out[(i+8*6)*`ML-1 : (i-1+8*6)*`ML],
-               out[(i+8*7)*`ML-1 : (i-1+8*7)*`ML]);
+    idctcol ic(rtc[(i+8*0)*`WIM-1 : (i-1+8*0)*`WIM],
+               rtc[(i+8*1)*`WIM-1 : (i-1+8*1)*`WIM],
+               rtc[(i+8*2)*`WIM-1 : (i-1+8*2)*`WIM],
+               rtc[(i+8*3)*`WIM-1 : (i-1+8*3)*`WIM],
+               rtc[(i+8*4)*`WIM-1 : (i-1+8*4)*`WIM],
+               rtc[(i+8*5)*`WIM-1 : (i-1+8*5)*`WIM],
+               rtc[(i+8*6)*`WIM-1 : (i-1+8*6)*`WIM],
+               rtc[(i+8*7)*`WIM-1 : (i-1+8*7)*`WIM],
+               out[(i+8*0)*`WOUT-1 : (i-1+8*0)*`WOUT],
+               out[(i+8*1)*`WOUT-1 : (i-1+8*1)*`WOUT],
+               out[(i+8*2)*`WOUT-1 : (i-1+8*2)*`WOUT],
+               out[(i+8*3)*`WOUT-1 : (i-1+8*3)*`WOUT],
+               out[(i+8*4)*`WOUT-1 : (i-1+8*4)*`WOUT],
+               out[(i+8*5)*`WOUT-1 : (i-1+8*5)*`WOUT],
+               out[(i+8*6)*`WOUT-1 : (i-1+8*6)*`WOUT],
+               out[(i+8*7)*`WOUT-1 : (i-1+8*7)*`WOUT]);
 end
 endgenerate
 endmodule // Fast_IDCT
 
 module top ();
 integer i;
-reg signed [`ML-1:0] b [63:0];
-wire [`ML*8*8-1:0] out;
-reg [`ML*8*8-1:0] out_reg;
-Fast_IDCT idct({b[63], b[62], b[61], b[60], b[59], b[58], b[57], b[56],
-                b[55], b[54], b[53], b[52], b[51], b[50], b[49], b[48],
-                b[47], b[46], b[45], b[44], b[43], b[42], b[41], b[40],
-                b[39], b[38], b[37], b[36], b[35], b[34], b[33], b[32],
-                b[31], b[30], b[29], b[28], b[27], b[26], b[25], b[24],
-                b[23], b[22], b[21], b[20], b[19], b[18], b[17], b[16],
-                b[15], b[14], b[13], b[12], b[11], b[10], b[09], b[08],
-                b[07], b[06], b[05], b[04], b[03], b[02], b[01], b[00]}, out);
+reg signed [`WIN-1:0] b [63:0];
+wire [`WOUT*8*8-1:0] out;
+reg [`WOUT*8*8-1:0] out_reg;
+
+Fast_IDCT idct(`ARRAY_TO_BITVECTOR(b), out);
+
 initial begin
   $dumpfile("test.vcd");
   $dumpvars(6, top);
 
+  // TEST 0
   for (i = 0; i < 64; i = i + 1) begin
     b[i] <= -1*i;
   end
+  `TEST(0);
 
-  #10;
-  out_reg <= out;
-
-  #10;
-  if (out_reg != `G0) begin
-    $display("Error in assert №0!");
-    $finish;
-  end
-  #10;
-  $display("out_reg (hex) = %x", out_reg);
-
+  // TEST 1
   for (i = 0; i < 64; i = i + 1) begin
     b[i] <= 1*i;
   end
+  `TEST(1);
 
-  #10;
-  out_reg <= out;
-  
-  #10;
-  if (out_reg != `G1) begin
-    $display("Error in assert №1!");
-    $finish;
-  end
-  #10;
-  $display("out_reg (hex) = %x", out_reg);
-  
+  // TEST 2
   for (i = 0; i < 64; i = i + 1) begin
     b[i] <= 0;
   end
-  
   b[0] <= 23;
   b[1] <= -1;
   b[2] <= -2;
-  
-  #10;
-  out_reg <= out;
-  
-  #10;
-  if (out_reg != `G2) begin
-    $display("Error in assert №2!");
-    $finish;
-  end
-  #10;
-  $display("out_reg (hex) = %x", out_reg);
-  
+  `TEST(2);
+
+  // TEST 3
   for (i = 0; i < 64; i = i + 1) begin
     b[i] <= 0;
   end
   b[0] <= 13;
   b[1] <= -7;
   b[9] <= 2;
+  `TEST(3);
   
-  #10;
-  out_reg <= out;
-  
-  #10;
-  if (out_reg != `G3) begin
-    $display("Error in assert №3!");
-    $finish;
-  end
-  #10;
-  $display("out_reg (hex) = %x", out_reg);
-
+  // TEST 4
   for (i = 0; i < 64; i = i + 1) begin
     b[i] <= 0;
   end
@@ -348,86 +403,12 @@ initial begin
   b[3] <= -4;
   b[8] <= -2;
   b[16] <= -2;
+  `TEST(4);
 
-  #10;
-  out_reg <= out;
+  // TEST 5
+  `ARRAY_TO_BITVECTOR(b) <= `IN5;
+  `TEST(5);
 
-  #10;
-  if (out_reg != `G4) begin
-    $display("Error in assert №4!");
-    $finish;
-  end
-  #10;
-  $display("out_reg (hex) = %x", out_reg);
-  
-  for (i = 0; i < 64; i = i + 1) begin
-    b[i] <= 0;
-  end
-  
-  b[0] <= -240;
-  b[1] <= 8;
-  b[2] <= -11;
-  b[3] <= 47;
-  b[4] <= 26;
-  b[5] <= -6;
-  b[7] <= 5;
-  
-  b[8] <= 28;
-  b[9] <= -6;
-  b[10] <= 85;
-  b[11] <= 44;
-  b[12] <= -4;
-  b[13] <= -25;
-  b[14] <= 5;
-  b[15] <= 16;
-  
-  b[16] <= 21;
-  b[17] <= 8;
-  b[18] <= 32;
-  b[19] <= -16;
-  b[20] <= -24;
-  b[22] <= 30;
-  b[23] <= 12;
-  
-  b[24] <= -2;
-  b[25] <= 18;
-  b[27] <= -2;
-  b[29] <= 7;
-  b[31] <= -15;
-  
-  b[32] <= 7;
-  b[33] <= 4;
-  b[34] <= 15;
-  b[35] <= -24;
-  b[37] <= 9;
-  b[38] <= 8;
-  b[39] <= -6;
-  
-  b[40] <= 4;
-  b[41] <= 9;
-  b[43] <= -5;
-  b[44] <= -6;
-  
-  b[48] <= -4;
-  b[50] <= -6;
-  b[53] <= 10;
-  b[54] <= -10;
-  b[55] <= -8;
-  
-  b[56] <= 6;
-  b[63] <= -8;
-  
-  #10;
-  out_reg <= out;
-  
-  #10;
-  if (out_reg != `G5) begin
-    $display("Error in assert №5!");
-    $finish;
-  end
-  #10;
-  $display("out_reg (hex) = %x", out_reg);
-  
-
+  $display("[SUCCESS] Tests passed!");
 end
 endmodule // top
