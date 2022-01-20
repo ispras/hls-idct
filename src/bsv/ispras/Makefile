@@ -1,13 +1,14 @@
-default: compile  link
-all:	 compile  link  simulate
+default: compile link
+all: compile link simulate
 vlog: rtl vlink vsim
 
 # ----------------------------------------------------------------
 
-TOPFILE   ?= ./Idct.bsv
-# TOPFILE   ?= ./Top2.bsv
+TOPFILE   ?= ./IdctTestbench.bsv
+#TOPFILE   ?= ./IdctTest0Wrapper.bsv
 
-TOPMODULE ?= mkTbench
+TOPMODULE ?= mkIdctTestbench
+#TOPMODULE ?= mkIdctTest0Wrapper
 EXEFILE_BSIM ?= exe_HW_bsim
 EXEFILE_VSIM ?= exe_HW_vsim
 
