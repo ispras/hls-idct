@@ -12,12 +12,12 @@ TOPMODULE ?= mkIdctTestbench
 EXEFILE_BSIM ?= exe_HW_bsim
 EXEFILE_VSIM ?= exe_HW_vsim
 
-BSCFLAGS = -keep-fires \
-	-aggressive-conditions \
-	-show-schedule \
-	-no-warn-action-shadowing \
-	-no-inline-rwire \
-	-show-range-conflict
+BSCFLAGS = -keep-fires \ # keep CAN_FIRE/WILL_FIRE signals in RTL
+	-aggressive-conditions \ # Rules' implicit conditions lifting to guards
+	-show-schedule \ # keep scheduling results in text file
+	-no-inline-rwire \ # flatten RWire uses in the generated RTL
+	-show-elab-progress \ # show elaboration progress in terminal
+	-show-range-conflict # extended debug printing upon scheduling conflicts
 
 BSC_C_FLAGS += \
 	-Xc++  -D_GLIBCXX_USE_CXX11_ABI=0 \
