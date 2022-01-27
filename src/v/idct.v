@@ -116,15 +116,38 @@
 
 // Test check
 `define TEST(number) \
-  #1; \
-  out_reg <= out; \
-  #1; \
-  if (out_reg != `REF``number) begin \
+  clock <= 1; \
+  for (i = 0; i < 64; i = i + 1) begin \
+    s_tdata <= b[i]; \
+    s_tvalid <= 1; \
+    #5; \
+    clock <= 0; \
+    #5; \
+    clock <= 1; \
+  end \
+  s_tvalid <= 0; \
+  #5; \
+  clock <= 0; \
+  m_tready <= 1; \
+  #5; \
+  clock <= 1; \
+  for (i = 0; i < 64; i = i + 1) begin \
+    if (m_tvalid) begin \
+      out_reg[i] <= m_tdata; \
+    end \
+    #5; \
+    clock <= 0; \
+    #5; \
+    clock <= 1; \
+  end \
+  m_tready <= 0; \
+  if (`ARRAY_TO_BITVECTOR(out_reg) != `REF``number) begin \
     $display("[FAIL] test #number:"); \
-    $display("expected value is 0x%x\nreceived value is 0x%x", `REF``number, out_reg); \
+    $display("expected value is 0x%x\nreceived value is 0x%x", \
+             `REF``number, `ARRAY_TO_BITVECTOR(out_reg)); \
     $finish; \
   end else begin \
-    $display("[OK] test #number: out_reg is 0x%x", out_reg); \
+    $display("[OK] test #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out_reg)); \
   end
 
 module idctrow(input [`WIN-1:0] i0, input [`WIN-1:0] i1, input [`WIN-1:0] i2, input [`WIN-1:0] i3,
@@ -351,62 +374,142 @@ end
 endgenerate
 endmodule // Fast_IDCT
 
-module top ();
+module axi_stream_wrappered_idct(output [`WOUT-1:0] m_tdata, output m_tvalid, input m_tready,
+                                 input [`WIN-1:0] s_tdata, input s_tvalid, output s_tready,
+                                 input clock, input reset_n);
+reg [`WIN-1:0] in_buff [63:0];
+reg [`WOUT-1:0] out_buff [63:0];
+reg [5:0] in_counter;
+reg [5:0] out_counter;
+reg sample_out;
+reg start_out;
+reg ready;
+wire [`WOUT*8*8-1:0] out;
+Fast_IDCT idct(`ARRAY_TO_BITVECTOR(in_buff), out);
+always @(posedge clock) begin
+  if (~reset_n) begin
+    `ARRAY_TO_BITVECTOR(in_buff) <= 0;
+    `ARRAY_TO_BITVECTOR(out_buff) <= 0;
+    in_counter <= 0;
+    out_counter <= 0;
+    sample_out <= 0;
+    start_out <= 0;
+    ready <= 1;
+  end else begin
+    if (sample_out) begin
+      `ARRAY_TO_BITVECTOR(out_buff) <= out;
+      sample_out <= 0;
+      start_out <= 1;
+    end
+    if (s_tvalid) begin
+      in_buff[in_counter] <= s_tdata;
+      in_counter <= in_counter + 1;
+      if (in_counter == 6'h3f) begin
+        if (~start_out) begin
+          sample_out <= 1;
+        end else begin
+          ready <= 0;
+        end
+      end
+    end
+    if (start_out) begin
+      if (m_tready) begin
+        out_counter <= out_counter + 1;
+        if (out_counter == 6'h3f) begin
+          start_out <= 0;
+        end
+      end
+    end else begin
+      if (~ready) begin
+        sample_out <= 1;
+        ready <= 1;
+      end
+    end
+  end
+end
+assign m_tdata = start_out ? out_buff[out_counter] : 0;
+assign m_tvalid = start_out ? 1 : 0;
+assign s_tready = ready;
+endmodule
+
+module testbench ();
 integer i;
 reg signed [`WIN-1:0] b [63:0];
-wire [`WOUT*8*8-1:0] out;
-reg [`WOUT*8*8-1:0] out_reg;
+reg [`WOUT-1:0] out_reg [63:0];
 
-Fast_IDCT idct(`ARRAY_TO_BITVECTOR(b), out);
+reg signed [`WIN-1:0] s_tdata;
+reg s_tvalid;
+wire s_tready;
+wire signed [`WOUT-1:0] m_tdata;
+wire m_tvalid;
+reg m_tready;
+reg clock;
+reg reset;
+
+axi_stream_wrappered_idct idct(m_tdata, m_tvalid, m_tready,
+                               s_tdata, s_tvalid, s_tready, clock, reset);
 
 initial begin
   $dumpfile("test.vcd");
-  $dumpvars(6, top);
+  $dumpvars(6, testbench);
+
+  reset <= 0;
+  clock <= 0;
+  s_tdata <= 0;
+  s_tvalid <= 0;
+  m_tready <= 0;
+  clock <= 0;
+  #5;
+  clock <= 1;
+  #5;
+  clock <= 0;
+  reset <= 1;
+  #5;
 
   // TEST 0
   for (i = 0; i < 64; i = i + 1) begin
-    b[i] <= -1*i;
+    b[i] = -1*i;
   end
   `TEST(0);
 
   // TEST 1
   for (i = 0; i < 64; i = i + 1) begin
-    b[i] <= 1*i;
+    b[i] = 1*i;
   end
   `TEST(1);
 
   // TEST 2
   for (i = 0; i < 64; i = i + 1) begin
-    b[i] <= 0;
+    b[i] = 0;
   end
-  b[0] <= 23;
-  b[1] <= -1;
-  b[2] <= -2;
+  b[0] = 23;
+  b[1] = -1;
+  b[2] = -2;
   `TEST(2);
 
   // TEST 3
   for (i = 0; i < 64; i = i + 1) begin
-    b[i] <= 0;
+    b[i] = 0;
   end
-  b[0] <= 13;
-  b[1] <= -7;
-  b[9] <= 2;
+  b[0] = 13;
+  b[1] = -7;
+  b[9] = 2;
   `TEST(3);
   
   // TEST 4
   for (i = 0; i < 64; i = i + 1) begin
-    b[i] <= 0;
+    b[i] = 0;
   end
-  b[0] <= -166;
-  b[1] <= -7;
-  b[2] <= -4;
-  b[3] <= -4;
-  b[8] <= -2;
-  b[16] <= -2;
+  b[0] = -166;
+  b[1] = -7;
+  b[2] = -4;
+  b[3] = -4;
+  b[8] = -2;
+  b[16] = -2;
   `TEST(4);
 
   // TEST 5
-  `ARRAY_TO_BITVECTOR(b) <= `IN5;
+  `ARRAY_TO_BITVECTOR(b) = `IN5;
   `TEST(5);
 
   $display("[SUCCESS] Tests passed!");
