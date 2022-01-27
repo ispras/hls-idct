@@ -30,23 +30,17 @@
 
 package Idct;
 
+import Typedefs::*;
 import Vector::*;
 
 typedef 8 DataDim;
 typedef TMul#(DataDim, DataDim) DataSize;
 
-typedef 2841 W1; /* 2048*sqrt(2)*cos(1*pi/16) */
-typedef 2676 W2; /* 2048*sqrt(2)*cos(2*pi/16) */
-typedef 2408 W3; /* 2048*sqrt(2)*cos(3*pi/16) */
-typedef 1609 W5; /* 2048*sqrt(2)*cos(5*pi/16) */
-typedef 1108 W6; /* 2048*sqrt(2)*cos(6*pi/16) */
-typedef 565 W7;  /* 2048*sqrt(2)*cos(7*pi/16) */
-typedef 181 R2;  /* 256/sqrt(2) */
-
 /* Input data */
 
 typedef 12 InputLength;
 typedef Int#(InputLength) InputType;
+typedef Vector#(DataDim, InputType) InDataRow;
 typedef Vector#(DataSize, InputType) InDataType;
 typedef Vector#(DataSize, Reg#(InputType)) InDataReg;
 
@@ -54,6 +48,7 @@ typedef Vector#(DataSize, Reg#(InputType)) InDataReg;
 
 typedef 13 DataLength;
 typedef Int#(DataLength) DataInt;
+typedef Vector#(DataDim, DataInt) DataFrag;
 typedef Vector#(DataSize, DataInt) DataType;
 typedef Vector#(DataSize, Reg#(DataInt)) DataReg;
 
@@ -61,208 +56,194 @@ typedef Vector#(DataSize, Reg#(DataInt)) DataReg;
 
 typedef 9 OutputLength;
 typedef Int#(OutputLength) OutputType;
+typedef Vector#(DataDim, OutputType) OutDataCol;
 typedef Vector#(DataSize, OutputType) OutDataType;
 typedef Vector#(DataSize, Reg#(OutputType)) OutDataReg;
 
-/* Internal state machine */
+/* Row/column processors */
 
-typedef enum { IDLE, HAVE_DATA, ROWS_PROCESSED, COLS_PROCESSED, DONE } State
-  deriving(Bits, Eq);
+typedef Vector#(DataDim, Idct_iface#(InDataRow, DataFrag)) RowProcessors;
+typedef Vector#(DataDim, Idct_iface#(DataFrag, OutDataCol)) ColProcessors;
 
-function DataInt iclip(int x);
-  return truncate((x < -256) ? -256 : ((x > 255) ? 255 : x));
-endfunction
+/* AXI-like wrapper state machine */
 
-interface Idct_iface;
-  method Action start(InDataType x);
-  method ActionValue#(OutDataType) result();
-endinterface: Idct_iface
+typedef enum { IDLE, HAVE_DATA, DONE } State deriving(Bits, Eq);
+
+interface Idct_iface#(type iType, type oType);
+  method ActionValue#(oType) run(iType x);
+endinterface
 
 interface IdctAxiWrapper_iface;
   method Action send(InputType x);
   method ActionValue#(OutputType) recv();
 endinterface: IdctAxiWrapper_iface
 
+module mkIdctRow(Idct_iface#(InDataRow, DataFrag));
+
+  method ActionValue#(DataFrag) run(InDataRow x);
+
+    DataFrag out = newVector;
+
+    int x0 = (extend(x[0]) << 11) + 128;
+    int x1 = extend(x[4]) << 11;
+    int x2 = extend(x[6]);
+    int x3 = extend(x[2]);
+    int x4 = extend(x[1]);
+    int x5 = extend(x[7]);
+    int x6 = extend(x[5]);
+    int x7 = extend(x[3]);
+    int x8 = 0;
+
+    /* shortcut */
+    if ((x1 | x2 | x3 | x4 | x5 | x6 | x7) == 0) begin
+      DataInt res = extend(x[0] << 3);
+      out = replicate(res);
+    end
+    else begin
+      /* first stage */
+      x8 = w7 * (x4 + x5);
+      x4 = x8 + (w1 - w7) * x4;
+      x5 = x8 - ((w1 + w7) * x5);
+      x8 = w3 * (x6 + x7);
+      x6 = x8 - (w3 - w5) * x6;
+      x7 = x8 - (w3 + w5) * x7;
+
+      /* second stage */
+      x8 = x0 + x1;
+      x0 = x0 - x1;
+      x1 = w6 * (x3 + x2);
+      x2 = x1 - (w2 + w6) * x2;
+      x3 = x1 + (w2 - w6) * x3;
+      x1 = x4 + x6;
+      x4 = x4 - x6;
+      x6 = x5 + x7;
+      x5 = x5 - x7;
+
+      /* third stage */
+      x7 = x8 + x3;
+      x8 = x8 - x3;
+      x3 = x0 + x2;
+      x0 = x0 - x2;
+      x2 = (r2 * (x4 + x5) + 128) >> 8;
+      x4 = (r2 * (x4 - x5) + 128) >> 8;
+
+      /* fourth stage */
+      out[0] = truncate((x7 + x1) >> 8);
+      out[1] = truncate((x3 + x2) >> 8);
+      out[2] = truncate((x0 + x4) >> 8);
+      out[3] = truncate((x8 + x6) >> 8);
+      out[4] = truncate((x8 - x6) >> 8);
+      out[5] = truncate((x0 - x4) >> 8);
+      out[6] = truncate((x3 - x2) >> 8);
+      out[7] = truncate((x7 - x1) >> 8);
+    end
+    return out;
+  endmethod
+endmodule: mkIdctRow
+
+module mkIdctCol(Idct_iface#(DataFrag, OutDataCol));
+
+  function OutputType iclip(int x);
+    return truncate((x < -256) ? -256 : ((x > 255) ? 255 : x));
+  endfunction
+
+  method ActionValue#(OutDataCol) run(DataFrag x);
+
+    OutDataCol out = newVector;
+
+    int x0 = (extend(x[0]) << 8) + 8192;
+    int x1 = extend(x[4]) << 8;
+    int x2 = extend(x[6]);
+    int x3 = extend(x[2]);
+    int x4 = extend(x[1]);
+    int x5 = extend(x[7]);
+    int x6 = extend(x[5]);
+    int x7 = extend(x[3]);
+    int x8 = 0;
+
+    /* shortcut */
+    if ((x1 | x2 | x3 | x4 | x5 | x6 | x7) == 0) begin
+      OutputType res = iclip((extend(x[0]) + 32) >> 6);
+      out = replicate(res);
+    end
+    else begin
+      /* first stage */
+      x8 = w7 * (x4 + x5) + 4;
+      x4 = (x8 + (w1 - w7) * x4) >> 3;
+      x5 = (x8 - (w1 + w7) * x5) >> 3;
+      x8 = w3 * (x6 + x7) + 4;
+      x6 = (x8 - (w3 - w5) * x6) >> 3;
+      x7 = (x8 - (w3 + w5) * x7) >> 3;
+
+      /* second stage */
+      x8 = x0 + x1;
+      x0 = x0 - x1;
+      x1 = w6 * (x3 + x2) + 4;
+      x2 = (x1 - (w2 + w6) * x2) >> 3;
+      x3 = (x1 + (w2 - w6) * x3) >> 3;
+      x1 = x4 + x6;
+      x4 = x4 - x6;
+      x6 = x5 + x7;
+      x5 = x5 - x7;
+
+      /* third stage */
+      x7 = x8 + x3;
+      x8 = x8 - x3;
+      x3 = x0 + x2;
+      x0 = x0 - x2;
+      x2 = (181 * (x4 + x5) + 128) >> 8;
+      x4 = (181 * (x4 - x5) + 128) >> 8;
+
+      /* fourth stage */
+      out[0] = iclip((x7 + x1) >> 14);
+      out[1] = iclip((x3 + x2) >> 14);
+      out[2] = iclip((x0 + x4) >> 14);
+      out[3] = iclip((x8 + x6) >> 14);
+      out[4] = iclip((x8 - x6) >> 14);
+      out[5] = iclip((x0 - x4) >> 14);
+      out[6] = iclip((x3 - x2) >> 14);
+      out[7] = iclip((x7 - x1) >> 14);
+    end
+    return out;
+  endmethod
+endmodule: mkIdctCol
+
 (* synthesize *)
-module mkIdct (Idct_iface);
+module mkIdct (Idct_iface#(InDataType, OutDataType));
 
-  DataReg blk       <- replicateM(mkRegU);
-  Reg#(State) state <- mkReg(IDLE);
+  RowProcessors rows <- replicateM(mkIdctRow);
+  ColProcessors cols <- replicateM(mkIdctCol);
 
-  Integer dataSize = valueOf(DataSize);
   Integer dataDim  = valueOf(DataDim);
 
-  int w1 = fromInteger(valueOf(W1));
-  int w2 = fromInteger(valueOf(W2));
-  int w3 = fromInteger(valueOf(W3));
-  int w5 = fromInteger(valueOf(W5));
-  int w6 = fromInteger(valueOf(W6));
-  int w7 = fromInteger(valueOf(W7));
-  int r2 = fromInteger(valueOf(R2));
-
-  function Action idctrow(Integer idx);
-    action
-      int x0 = (extend(blk[idx]) << 11) + 128;
-      int x1 = extend(blk[idx + 4]) << 11;
-      int x2 = extend(blk[idx + 6]);
-      int x3 = extend(blk[idx + 2]);
-      int x4 = extend(blk[idx + 1]);
-      int x5 = extend(blk[idx + 7]);
-      int x6 = extend(blk[idx + 5]);
-      int x7 = extend(blk[idx + 3]);
-      int x8 = 0;
-
-      /* shortcut */
-      if ((x1 | x2 | x3 | x4 | x5 | x6 | x7) == 0) begin
-        blk[idx]     <= blk[idx] << 3;
-        blk[idx + 1] <= blk[idx] << 3;
-        blk[idx + 2] <= blk[idx] << 3;
-        blk[idx + 3] <= blk[idx] << 3;
-        blk[idx + 4] <= blk[idx] << 3;
-        blk[idx + 5] <= blk[idx] << 3;
-        blk[idx + 6] <= blk[idx] << 3;
-        blk[idx + 7] <= blk[idx] << 3;
-      end
-      else begin
-        /* first stage */
-        x8 = w7 * (x4 + x5);
-        x4 = x8 + (w1 - w7) * x4;
-        x5 = x8 - ((w1 + w7) * x5);
-        x8 = w3 * (x6 + x7);
-        x6 = x8 - (w3 - w5) * x6;
-        x7 = x8 - (w3 + w5) * x7;
-
-        /* second stage */
-        x8 = x0 + x1;
-        x0 = x0 - x1;
-        x1 = w6 * (x3 + x2);
-        x2 = x1 - (w2 + w6) * x2;
-        x3 = x1 + (w2 - w6) * x3;
-        x1 = x4 + x6;
-        x4 = x4 - x6;
-        x6 = x5 + x7;
-        x5 = x5 - x7;
-
-        /* third stage */
-        x7 = x8 + x3;
-        x8 = x8 - x3;
-        x3 = x0 + x2;
-        x0 = x0 - x2;
-        x2 = (r2 * (x4 + x5) + 128) >> 8;
-        x4 = (r2 * (x4 - x5) + 128) >> 8;
-
-        /* fourth stage */
-        blk[idx]     <= truncate((x7 + x1) >> 8);
-        blk[idx + 1] <= truncate((x3 + x2) >> 8);
-        blk[idx + 2] <= truncate((x0 + x4) >> 8);
-        blk[idx + 3] <= truncate((x8 + x6) >> 8);
-        blk[idx + 4] <= truncate((x8 - x6) >> 8);
-        blk[idx + 5] <= truncate((x0 - x4) >> 8);
-        blk[idx + 6] <= truncate((x3 - x2) >> 8);
-        blk[idx + 7] <= truncate((x7 - x1) >> 8);
-      end
-    endaction
+  function DataFrag getCol(DataType data, Integer i);
+    DataFrag res = newVector;
+    for (Integer j = 0; j < dataDim; j = j + 1) begin
+      res[j] = data[i + 8 * j];
+    end
+    return res;
   endfunction
 
-  function Action idctcol(Integer idx);
-    action
-      int x0 = (extend(blk[idx + 8 * 0]) << 8) + 8192;
-      int x1 = extend(blk[idx + 8 * 4]) << 8;
-      int x2 = extend(blk[idx + 8 * 6]);
-      int x3 = extend(blk[idx + 8 * 2]);
-      int x4 = extend(blk[idx + 8 * 1]);
-      int x5 = extend(blk[idx + 8 * 7]);
-      int x6 = extend(blk[idx + 8 * 5]);
-      int x7 = extend(blk[idx + 8 * 3]);
-      int x8 = 0;
+  method ActionValue#(OutDataType) run(InDataType data);
 
-      /* shortcut */
-      if ((x1 | x2 | x3 | x4 | x5 | x6 | x7) == 0) begin
-        int block = extend(blk[idx]);
-        blk[idx + 8 * 0] <= iclip((block + 32) >> 6);
-        blk[idx + 8 * 1] <= iclip((block + 32) >> 6);
-        blk[idx + 8 * 2] <= iclip((block + 32) >> 6);
-        blk[idx + 8 * 3] <= iclip((block + 32) >> 6);
-        blk[idx + 8 * 4] <= iclip((block + 32) >> 6);
-        blk[idx + 8 * 5] <= iclip((block + 32) >> 6);
-        blk[idx + 8 * 6] <= iclip((block + 32) >> 6);
-        blk[idx + 8 * 7] <= iclip((block + 32) >> 6);
-      end
-      else begin
-        /* first stage */
-        x8 = w7 * (x4 + x5) + 4;
-        x4 = (x8 + (w1 - w7) * x4) >> 3;
-        x5 = (x8 - (w1 + w7) * x5) >> 3;
-        x8 = w3 * (x6 + x7) + 4;
-        x6 = (x8 - (w3 - w5) * x6) >> 3;
-        x7 = (x8 - (w3 + w5) * x7) >> 3;
-
-        /* second stage */
-        x8 = x0 + x1;
-        x0 = x0 - x1;
-        x1 = w6 * (x3 + x2) + 4;
-        x2 = (x1 - (w2 + w6) * x2) >> 3;
-        x3 = (x1 + (w2 - w6) * x3) >> 3;
-        x1 = x4 + x6;
-        x4 = x4 - x6;
-        x6 = x5 + x7;
-        x5 = x5 - x7;
-
-        /* third stage */
-        x7 = x8 + x3;
-        x8 = x8 - x3;
-        x3 = x0 + x2;
-        x0 = x0 - x2;
-        x2 = (181 * (x4 + x5) + 128) >> 8;
-        x4 = (181 * (x4 - x5) + 128) >> 8;
-
-        /* fourth stage */
-        blk[idx + 8 * 0] <= iclip((x7 + x1) >> 14);
-        blk[idx + 8 * 1] <= iclip((x3 + x2) >> 14);
-        blk[idx + 8 * 2] <= iclip((x0 + x4) >> 14);
-        blk[idx + 8 * 3] <= iclip((x8 + x6) >> 14);
-        blk[idx + 8 * 4] <= iclip((x8 - x6) >> 14);
-        blk[idx + 8 * 5] <= iclip((x0 - x4) >> 14);
-        blk[idx + 8 * 6] <= iclip((x3 - x2) >> 14);
-        blk[idx + 8 * 7] <= iclip((x7 - x1) >> 14);
-      end
-    endaction
-  endfunction
-
-  function OutputType toOutput(Integer i);
-    return truncate(blk[i]);
-  endfunction
-
-  rule process_rows (state == HAVE_DATA);
+    DataType tmp = newVector;
+    OutDataType res = newVector;
 
     for (Integer i = 0; i < dataDim; i = i + 1) begin
-      idctrow(8 * i);
+      InDataRow frag = takeAt(8 * i, data);
+      DataFrag dataFrag <- rows[i].run(frag);
+      for (Integer j = 0; j < dataDim; j = j + 1) begin
+        tmp[8 * i + j] = dataFrag[j];
+      end
     end
-
-    state <= ROWS_PROCESSED;
-  endrule
-
-  rule process_columns (state == ROWS_PROCESSED);
 
     for (Integer i = 0; i < dataDim; i = i + 1) begin
-      idctcol(i);
+      OutDataCol outFrag <- cols[i].run(getCol(tmp, i));
+      for (Integer j = 0; j < dataDim; j = j + 1) begin
+        res[i + 8 * j] = outFrag[j];
+      end
     end
-
-    state <= COLS_PROCESSED;
-  endrule
-
-  rule stop_processing (state == COLS_PROCESSED);
-    state <= DONE;
-  endrule
-
-  method Action start(InDataType data) if (state == IDLE);
-    writeVReg(blk, map(extend, data));
-    state <= HAVE_DATA;
-  endmethod
-
-  method ActionValue#(OutDataType) result() if (state == DONE);
-    state <= IDLE;
-    return genWith(toOutput);
+    return res;
   endmethod
 
 endmodule: mkIdct
@@ -274,20 +255,15 @@ module mkIdctAxiWrapper(IdctAxiWrapper_iface);
 
   Reg#(int) count    <- mkReg(0);
   Reg#(State) state  <- mkReg(IDLE);
-  Idct_iface idct    <- mkIdct;
+  Idct_iface#(InDataType, OutDataType) idct <- mkIdct;
   InDataReg inputs   <- replicateM(mkRegU);
   OutDataReg outputs <- replicateM(mkRegU);
 
   int size = fromInteger(valueOf(DataSize));
 
-  rule run ((state == IDLE) && (count == size));
-    idct.start(readVReg(inputs));
-    state <= HAVE_DATA;
-  endrule
-
-  rule get_result ((state == HAVE_DATA) && (count == size));
-    OutDataType result <- idct.result();
-    writeVReg(outputs, result);
+  rule run ((state == HAVE_DATA) && (count == size));
+    OutDataType out <- idct.run(readVReg(inputs));
+    writeVReg(outputs, out);
     count <= 0;
     state <= DONE;
   endrule
@@ -295,6 +271,7 @@ module mkIdctAxiWrapper(IdctAxiWrapper_iface);
   method Action send(InputType x) if ((state == IDLE) && (count < size));
     inputs[count] <= x;
     count <= count + 1;
+    state <= HAVE_DATA;
   endmethod
 
   method ActionValue#(OutputType) recv() if ((state == DONE) && (count < size));

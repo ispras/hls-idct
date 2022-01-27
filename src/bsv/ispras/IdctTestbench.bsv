@@ -95,19 +95,15 @@ endfunction
 module mkIdctTestbench(Empty);
 
   Reg#(int) testNum <- mkReg(0);
-  Idct_iface idct <- mkIdct;
+  Idct_iface#(InDataType, OutDataType) idct <- mkIdct;
 
   /* start/end test rules */
 
-  rule idct0_test_start (testNum == 0);
+  rule idct0_test (testNum == 0);
 
     InDataType in = genWith(idct0_test_init);
     $dumpvars();
-    idct.start(in);
-  endrule
-
-  rule idct0_test_end (testNum == 0);
-    OutDataType got <- idct.result();
+    OutDataType got <- idct.run(in);
     OutDataType want = genWith(idct0_test_want);
 
     testNum <= testNum + 1;
@@ -121,15 +117,11 @@ module mkIdctTestbench(Empty);
     end
   endrule
 
-  rule idct1_test_start (testNum == 1);
+  rule idct1_test (testNum == 1);
 
     InDataType in = genWith(idct1_test_init);
     $dumpvars();
-    idct.start(in);
-  endrule
-
-  rule idct1_test_end (testNum == 1);
-    OutDataType got <- idct.result();
+    OutDataType got <- idct.run(in);
     OutDataType want = genWith(idct1_test_want);
 
     testNum <= testNum + 1;
@@ -143,16 +135,11 @@ module mkIdctTestbench(Empty);
     end
   endrule
 
-  rule idct2_test_start (testNum == 2);
+  rule idct2_test (testNum == 2);
 
     InDataType in = genWith(idct2_test_init);
     $dumpvars();
-    idct.start(in);
-  endrule
-
-  rule idct2_test_end (testNum == 2);
-
-    OutDataType got <- idct.result();
+    OutDataType got <- idct.run(in);
     OutDataType want = genWith(idct2_test_want);
 
     testNum <= testNum + 1;
@@ -166,7 +153,7 @@ module mkIdctTestbench(Empty);
     end
   endrule
 
-  rule idct3_test_start (testNum == 3);
+  rule idct3_test (testNum == 3);
 
     InDataType in = replicate(0);
     in[0] = -240;
@@ -216,11 +203,7 @@ module mkIdctTestbench(Empty);
     in[63] = -8;
 
     $dumpvars();
-    idct.start(in);
-  endrule
-
-  rule idct3_test_end (testNum == 3);
-    OutDataType got <- idct.result();
+    OutDataType got <- idct.run(in);
 
     OutDataType want = newVector;
     want[0] = 21;

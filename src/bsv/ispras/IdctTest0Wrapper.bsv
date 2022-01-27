@@ -24,24 +24,17 @@ import IdctTestbench::*;
 import Vector::*;
 
 interface IdctWrapper_iface;
-  method Action start();
-  method ActionValue#(Bool) result();
+  method Action run();
 endinterface: IdctWrapper_iface
 
 (* synthesize *)
 module mkIdctTest0Wrapper(IdctWrapper_iface);
 
-  Idct_iface idct <- mkIdct;
-  Reg#(Bool) done <- mkReg(False);
+  Idct_iface#(InDataType, OutDataType) idct <- mkIdct;
 
-  method Action start() if (!done);
+  method Action run();
     InDataType in = genWith(idct0_test_init);
-    idct.start(in);
-    done <= True;
-  endmethod
-
-  method ActionValue#(Bool) result() if (done);
-    OutDataType out <- idct.result();
+    OutDataType out <- idct.run(in);
     OutDataType want = genWith(idct0_test_want);
     return (out == want);
   endmethod

@@ -21,11 +21,9 @@ EXEFILE_VSIM ?= exe_HW_vsim
 #	-show-range-conflict: extended debug printing upon scheduling conflicts
 
 BSCFLAGS = -show-schedule \
-	-aggressive-conditions \
-	-keep-fires \
-	-no-inline-rwire \
-	-show-elab-progress \
-	-show-range-conflict
+  -keep-fires \
+	-show-range-conflict \
+	+RTS -K512M -RTS
 
 BSC_C_FLAGS += \
 	-Xc++  -D_GLIBCXX_USE_CXX11_ABI=0 \
@@ -52,14 +50,14 @@ build:
 .PHONY: compile
 compile: build_bsim build
 	@echo Compiling...
-	bsc -u -sim $(BSCDIRS_BSIM)  $(BSCFLAGS)  -p $(BSCPATH_BSIM)  $(TOPFILE)
+	bsc -u -sim $(BSCDIRS_BSIM) $(BSCFLAGS) -p $(BSCPATH_BSIM)  $(TOPFILE)
 	@echo Compilation finished
 
 .PHONY: link
 link:
 	@echo Linking...
-	bsc  -sim  -parallel-sim-link 8\
-		$(BSCDIRS_BSIM)  -p $(BSCPATH_BSIM) \
+	bsc -sim -parallel-sim-link 8 \
+		$(BSCDIRS_BSIM) -p $(BSCPATH_BSIM) \
 		-e $(TOPMODULE) -o ./$(EXEFILE_BSIM) \
 		-keep-fires \
 		$(BSC_C_FLAGS)
@@ -74,7 +72,7 @@ simulate:
 # ----------------------------------------------------------------
 # FOR VERILOG
 
-BSCDIRS_V = -vdir verilog  -bdir build_v  -info-dir build_v
+BSCDIRS_V = -vdir verilog -bdir build_v -info-dir build_v
 BSCPATH_V = .:+
 
 VSIM ?= iverilog
@@ -88,12 +86,12 @@ verilog:
 .PHONY: rtl
 rtl: build_v verilog
 	@echo Verilog generation ...
-	bsc -u -elab -verilog  $(BSCDIRS_V)  $(BSCFLAGS)  -p $(BSCPATH_V)  $(TOPFILE)
+	bsc -u -elab -verilog $(BSCDIRS_V) $(BSCFLAGS) $(TOPFILE)
 	@echo Verilog generation finished
 
 .PHONY: vlink
 vlink:
-	bsc -verilog  -vsim $(VSIM)  $(BSCDIRS_V) \
+	bsc -verilog -vsim $(VSIM) $(BSCDIRS_V) \
 		-e $(TOPMODULE) -o ./$(EXEFILE_VSIM) \
 		-keep-fires
 	@echo Verilog linking finished
