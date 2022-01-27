@@ -23,16 +23,16 @@ import Idct::*;
 import IdctTestbench::*;
 import Vector::*;
 
-interface IdctWrapper_iface;
-  method Action run();
-endinterface: IdctWrapper_iface
+interface IdctWrapper_ifc;
+  method ActionValue#(Bool) run();
+endinterface: IdctWrapper_ifc
 
 (* synthesize *)
-module mkIdctTest0Wrapper(IdctWrapper_iface);
+module mkIdctTest0Wrapper(IdctWrapper_ifc);
 
-  Idct_iface#(InDataType, OutDataType) idct <- mkIdct;
+  Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
 
-  method Action run();
+  method ActionValue#(Bool) run();
     InDataType in = genWith(idct0_test_init);
     OutDataType out <- idct.run(in);
     OutDataType want = genWith(idct0_test_want);

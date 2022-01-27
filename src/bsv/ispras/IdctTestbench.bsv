@@ -95,7 +95,7 @@ endfunction
 module mkIdctTestbench(Empty);
 
   Reg#(int) testNum <- mkReg(0);
-  Idct_iface#(InDataType, OutDataType) idct <- mkIdct;
+  Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
 
   /* start/end test rules */
 

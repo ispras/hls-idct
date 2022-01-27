@@ -62,23 +62,23 @@ typedef Vector#(DataSize, Reg#(OutputType)) OutDataReg;
 
 /* Row/column processors */
 
-typedef Vector#(DataDim, Idct_iface#(InDataRow, DataFrag)) RowProcessors;
-typedef Vector#(DataDim, Idct_iface#(DataFrag, OutDataCol)) ColProcessors;
+typedef Vector#(DataDim, Idct_ifc#(InDataRow, DataFrag)) RowProcessors;
+typedef Vector#(DataDim, Idct_ifc#(DataFrag, OutDataCol)) ColProcessors;
 
 /* AXI-like wrapper state machine */
 
 typedef enum { IDLE, HAVE_DATA, DONE } State deriving(Bits, Eq);
 
-interface Idct_iface#(type iType, type oType);
+interface Idct_ifc#(type iType, type oType);
   method ActionValue#(oType) run(iType x);
 endinterface
 
-interface IdctAxiWrapper_iface;
+interface IdctAxiWrapper_ifc;
   method Action send(InputType x);
   method ActionValue#(OutputType) recv();
-endinterface: IdctAxiWrapper_iface
+endinterface: IdctAxiWrapper_ifc
 
-module mkIdctRow(Idct_iface#(InDataRow, DataFrag));
+module mkIdctRow(Idct_ifc#(InDataRow, DataFrag));
 
   method ActionValue#(DataFrag) run(InDataRow x);
 
@@ -141,7 +141,7 @@ module mkIdctRow(Idct_iface#(InDataRow, DataFrag));
   endmethod
 endmodule: mkIdctRow
 
-module mkIdctCol(Idct_iface#(DataFrag, OutDataCol));
+module mkIdctCol(Idct_ifc#(DataFrag, OutDataCol));
 
   function OutputType iclip(int x);
     return truncate((x < -256) ? -256 : ((x > 255) ? 255 : x));
@@ -209,7 +209,7 @@ module mkIdctCol(Idct_iface#(DataFrag, OutDataCol));
 endmodule: mkIdctCol
 
 (* synthesize *)
-module mkIdct (Idct_iface#(InDataType, OutDataType));
+module mkIdct (Idct_ifc#(InDataType, OutDataType));
 
   RowProcessors rows <- replicateM(mkIdctRow);
   ColProcessors cols <- replicateM(mkIdctCol);
@@ -251,13 +251,13 @@ endmodule: mkIdct
 /* AXI-like wrapper (for synthesis only) */
 
 (* synthesize *)
-module mkIdctAxiWrapper(IdctAxiWrapper_iface);
+module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
 
-  Reg#(int) count    <- mkReg(0);
-  Reg#(State) state  <- mkReg(IDLE);
-  Idct_iface#(InDataType, OutDataType) idct <- mkIdct;
-  InDataReg inputs   <- replicateM(mkRegU);
-  OutDataReg outputs <- replicateM(mkRegU);
+  Reg#(int) count                         <- mkReg(0);
+  Reg#(State) state                       <- mkReg(IDLE);
+  Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
+  InDataReg inputs                        <- replicateM(mkRegU);
+  OutDataReg outputs                      <- replicateM(mkRegU);
 
   int size = fromInteger(valueOf(DataSize));
 
