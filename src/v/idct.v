@@ -401,7 +401,7 @@ always @(posedge clock) begin
       sample_out <= 0;
       start_out <= 1;
     end
-    if (s_tvalid) begin
+    if (s_tvalid && ready) begin
       in_buff[in_counter] <= s_tdata;
       in_counter <= in_counter + 1;
       if (in_counter == 6'h3f) begin
