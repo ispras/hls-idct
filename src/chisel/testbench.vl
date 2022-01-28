@@ -1,4 +1,4 @@
-`include "Idct.v"
+`include "IDCTAXI.v"
 
 module testbench;
   reg        clock;
@@ -20,9 +20,9 @@ module testbench;
              o48, o49, o50, o51, o52, o53, o54, o55,
              o56, o57, o58, o59, o60, o61, o62, o63;
 
-  Idct idct(
-    clock,
-    reset,
+  IDCT idct(
+  //  clock,
+  //  reset,
     i00, i01, i02, i03, i04, i05, i06, i07,
     i08, i09, i10, i11, i12, i13, i14, i15,
     i16, i17, i18, i19, i20, i21, i22, i23,

@@ -1,4 +1,4 @@
-///===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the HLS-IDCT Project, under the Apache License v2.0
 // SPDX-License-Identifier: Apache-2.0
@@ -26,7 +26,7 @@ object Def {
   val W7 = 565  // 2048*sqrt(2)*cos(7*pi/16)
 }
 
-class IdctRow extends Module {
+class IDCTRow extends Module {
   val io = IO(new Bundle {
     val row = Input(Vec(8, SInt(Def.INPUT_WIDTH.W)))
     val out = Output(Vec(8, SInt(Def.TEMP_WIDTH.W)))
@@ -94,7 +94,7 @@ class IdctRow extends Module {
   }
 }
 
-class IdctCol extends Module {
+class IDCTCol extends Module {
   def iclp(x: SInt): SInt =
     Mux(x < -256.S, -256.S, Mux(x > 255.S, 255.S, x))(Def.OUTPUT_WIDTH - 1, 0).asSInt()
 
@@ -164,14 +164,14 @@ class IdctCol extends Module {
   }
 }
 
-class Idct extends Module {
+class IDCT extends Module {
   val io = IO(new Bundle {
     val iblk = Input(Vec(8*8, SInt(Def.INPUT_WIDTH.W)))
     val oblk = Output(Vec(8*8, SInt(Def.OUTPUT_WIDTH.W)))
   })
 
-  val idctrows = VecInit(Seq.fill(8) { Module(new IdctRow).io })
-  val idctcols = VecInit(Seq.fill(8) { Module(new IdctCol).io })
+  val idctrows = VecInit(Seq.fill(8) { Module(new IDCTRow).io })
+  val idctcols = VecInit(Seq.fill(8) { Module(new IDCTCol).io })
 
   for (i <- 0 to 7) {
     for (j <- 0 to 7) {
@@ -182,6 +182,6 @@ class Idct extends Module {
   }
 }
 
-object IdctDriver extends App {
-  (new ChiselStage).emitVerilog(new Idct)
+object IDCTDriver extends App {
+  (new ChiselStage).emitVerilog(new IDCT)
 }
