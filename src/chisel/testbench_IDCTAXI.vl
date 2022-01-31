@@ -106,7 +106,7 @@ module testbench;
   always #5 clock <= ~clock;
 
   initial begin
-    $dumpfile("testbench.vcd");
+    $dumpfile("testbench_IDCTAXI.vcd");
     $dumpvars(5, testbench);
 
     clock <= 0;

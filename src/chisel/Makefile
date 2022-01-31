@@ -1,14 +1,14 @@
-SRC = IDCTAXI.scala
+SRC = IDCTAXIrow.scala
 
 FIR = $(SRC:%.scala=%.fir)
 V   = $(SRC:%.scala=%.v)
 
-TEST = testbench
+TEST = testbench_IDCTAXIrow
 
 all: $(V) $(TEST)
 
 $(V): $(SRC)
-	sbt "runMain ru.ispras.idct.IDCTAXIDriver"
+	sbt "runMain ru.ispras.idct.IDCTAXIrowDriver"
 
 $(TEST): $(TEST).vl $(V)
 	iverilog -g2005-sv $(TEST).vl -o $(TEST)
