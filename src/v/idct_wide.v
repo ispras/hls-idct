@@ -25,7 +25,7 @@
  /* compliance                           sE,  2.1.94       */
  /**********************************************************/
 
-module Fast_IDCT(input [`WIN*8*8-1:0] in, output [`WOUT*8*8-1:0] out);
+module wide_Fast_IDCT(input [`WIN*8*8-1:0] in, output [`WOUT*8*8-1:0] out);
 
 wire [`WIM*8*8-1:0] rtc;
 wire [`WOUT*8*8-1:0] out;
@@ -71,18 +71,18 @@ end
 endgenerate
 endmodule // Fast_IDCT
 
-module axi_stream_wrappered_idct(output [`WOUT-1:0] m_tdata, output m_tvalid, input m_tready,
-                                 input [`WIN-1:0] s_tdata, input s_tvalid, output s_tready,
-                                 input clock, input reset_n);
+module wide_axi_stream_wrappered_idct(output [`WOUT*8-1:0] m_tdata, output m_tvalid, input m_tready,
+                                      input [`WIN*8-1:0] s_tdata, input s_tvalid, output s_tready,
+                                      input clock, input reset_n);
 reg [`WIN-1:0] in_buff [63:0];
 reg [`WOUT-1:0] out_buff [63:0];
-reg [5:0] in_counter;
-reg [5:0] out_counter;
+reg [2:0] in_counter;
+reg [2:0] out_counter;
 reg sample_out;
 reg start_out;
 reg ready;
 wire [`WOUT*8*8-1:0] out;
-Fast_IDCT idct(`ARRAY_TO_BITVECTOR(in_buff), out);
+wide_Fast_IDCT idct(`ARRAY_TO_BITVECTOR(in_buff), out);
 always @(posedge clock) begin
   if (~reset_n) begin
     `ARRAY_TO_BITVECTOR(in_buff) <= 0;
@@ -99,9 +99,9 @@ always @(posedge clock) begin
       start_out <= 1;
     end
     if (s_tvalid && ready) begin
-      in_buff[in_counter] <= s_tdata;
+      `ROW_OF_ARRAY(in_buff, in_counter*8) <= s_tdata;
       in_counter <= in_counter + 1;
-      if (in_counter == 6'h3f) begin
+      if (in_counter == 7) begin
         if (~start_out) begin
           sample_out <= 1;
         end else begin
@@ -112,7 +112,7 @@ always @(posedge clock) begin
     if (start_out) begin
       if (m_tready) begin
         out_counter <= out_counter + 1;
-        if (out_counter == 6'h3f) begin
+        if (out_counter == 7) begin
           start_out <= 0;
         end
       end
@@ -124,26 +124,26 @@ always @(posedge clock) begin
     end
   end
 end
-assign m_tdata = start_out ? out_buff[out_counter] : 0;
+assign m_tdata = start_out ? `ROW_OF_ARRAY(out_buff, out_counter*8) : 0;
 assign m_tvalid = start_out ? 1 : 0;
 assign s_tready = ready;
 endmodule
 
-module main (
-  input [14:0] in_iface,
-  output [10:0] out_iface,
+module wide_main (
+  input [3+12*8-1:0] in_iface,
+  output [2+9*8-1:0] out_iface,
   input CLK
 );
 
-axi_stream_wrappered_idct idct (
+wide_axi_stream_wrappered_idct idct (
   .clock(CLK),
   .reset_n(~in_iface[0]),
-  .s_tdata(in_iface[12:1]),
-  .s_tvalid(in_iface[13]),
+  .s_tdata(in_iface[12*8+3-1:3]),
+  .s_tvalid(in_iface[1]),
   .s_tready(out_iface[0]),
-  .m_tdata(out_iface[9:1]),
-  .m_tvalid(out_iface[10]),
-  .m_tready(in_iface[14])
+  .m_tdata(out_iface[9*8+2-1:2]),
+  .m_tvalid(out_iface[1]),
+  .m_tready(in_iface[2])
 );
 
 endmodule

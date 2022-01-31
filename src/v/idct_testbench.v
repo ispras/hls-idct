@@ -1,4 +1,6 @@
+`include "idct_rows_and_cols.v"
 `include "idct.v"
+`include "idct_wide.v"
 
 // Reference values for tests
 `define REF0 {9'h0,   9'h0,   9'h0,   9'h1,   9'h0,   9'h1,   9'h1ff, 9'h6,\
@@ -101,6 +103,43 @@
     $display("[OK] test #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out_reg)); \
   end
 
+// Test check
+`define TEST_WIDE(number) \
+  clock <= 1; \
+  for (i = 0; i < 8; i = i + 1) begin \
+    s_tdata_wide <= `ROW_OF_ARRAY(b, i*8); \
+    s_tvalid_wide <= 1; \
+    #5; \
+    clock <= 0; \
+    #5; \
+    clock <= 1; \
+  end \
+  s_tvalid_wide <= 0; \
+  #5; \
+  clock <= 0; \
+  m_tready_wide <= 1; \
+  #5; \
+  clock <= 1; \
+  for (i = 0; i < 8; i = i + 1) begin \
+    if (m_tvalid_wide) begin \
+      `ROW_OF_ARRAY(out_reg, i*8) <= m_tdata_wide; \
+    end \
+    #5; \
+    clock <= 0; \
+    #5; \
+    clock <= 1; \
+  end \
+  m_tready_wide <= 0; \
+  if (`ARRAY_TO_BITVECTOR(out_reg) != `REF``number) begin \
+    $display("[FAIL] wtest #number:"); \
+    $display("expected value is 0x%x\nreceived value is 0x%x", \
+             `REF``number, `ARRAY_TO_BITVECTOR(out_reg)); \
+    $finish; \
+  end else begin \
+    $display("[OK] wtest #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out_reg)); \
+  end
+
+
 // The test itself
 module testbench ();
 integer i;
@@ -116,8 +155,19 @@ reg m_tready;
 reg clock;
 reg reset;
 
+reg signed [`WIN*8-1:0] s_tdata_wide;
+reg s_tvalid_wide;
+wire s_tready_wide;
+wire signed [`WOUT*8-1:0] m_tdata_wide;
+wire m_tvalid_wide;
+reg m_tready_wide;
+
+
 axi_stream_wrappered_idct idct(m_tdata, m_tvalid, m_tready,
                                s_tdata, s_tvalid, s_tready, clock, reset);
+
+wide_axi_stream_wrappered_idct idct_wide(m_tdata_wide, m_tvalid_wide, m_tready_wide,
+                                         s_tdata_wide, s_tvalid_wide, s_tready_wide, clock, reset);
 
 initial begin
   $dumpfile("test.vcd");
@@ -141,12 +191,14 @@ initial begin
     b[i] = -1*i;
   end
   `TEST(0);
+  `TEST_WIDE(0);
 
   // TEST 1
   for (i = 0; i < 64; i = i + 1) begin
     b[i] = 1*i;
   end
   `TEST(1);
+  `TEST_WIDE(1);
 
   // TEST 2
   for (i = 0; i < 64; i = i + 1) begin
@@ -156,6 +208,7 @@ initial begin
   b[1] = -1;
   b[2] = -2;
   `TEST(2);
+  `TEST_WIDE(2);
 
   // TEST 3
   for (i = 0; i < 64; i = i + 1) begin
@@ -165,6 +218,7 @@ initial begin
   b[1] = -7;
   b[9] = 2;
   `TEST(3);
+  `TEST_WIDE(3);
   
   // TEST 4
   for (i = 0; i < 64; i = i + 1) begin
@@ -177,10 +231,12 @@ initial begin
   b[8] = -2;
   b[16] = -2;
   `TEST(4);
+  `TEST_WIDE(4);
 
   // TEST 5
   `ARRAY_TO_BITVECTOR(b) = `IN5;
   `TEST(5);
+  `TEST_WIDE(5);
 
   $display("[SUCCESS] Tests passed!");
 end
