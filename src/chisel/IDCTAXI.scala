@@ -24,9 +24,11 @@ class IDCTAXI extends Module {
   val iblk = Reg(Vec(8*8, SInt(Def.INPUT_WIDTH.W)))
   val oblk = Reg(Vec(8*8, SInt(Def.OUTPUT_WIDTH.W)))
 
-  val iidx = Reg(UInt(6.W))
-  val oidx = Reg(UInt(6.W))
+  val iidx = RegInit(0.U(6.W))
+  val oidx = RegInit(0.U(6.W))
 
+  // Copy the output block.
+  val copy = RegInit(false.B)
   // Transmission has started.
   val send = RegInit(false.B)
   // Ready to get an input element.
@@ -35,11 +37,13 @@ class IDCTAXI extends Module {
   // Combinational 8x8 IDCT core.
   val idct = Module(new IDCT)
 
+  copy := (iidx === 63.U)
+
   for (i <- 0 to 63) {
     idct.io.iblk(i) := iblk(i)
 
     // Save the output block as soon as the input block is received.
-    when (iidx === 63.U) {
+    when (copy) {
       oblk(i) := idct.io.oblk(i)
     }
   }
@@ -51,13 +55,13 @@ class IDCTAXI extends Module {
   }
 
   // Previous transmission has not been completed.
-  when (iidx === 62.U) {
+  when (iidx === 62.U | ~ready) {
     ready := ~send
   }
 
   // Start/stop transmission.
-  when (iidx === 63.U || oidx === 63.U) {
-    send := (iidx === 63.U)
+  when (copy | oidx === 63.U) {
+    send := copy
   }
 
   // Send an output element.

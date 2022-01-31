@@ -11,7 +11,7 @@ $(V): $(SRC)
 	sbt "runMain ru.ispras.idct.IDCTAXIDriver"
 
 $(TEST): $(TEST).vl $(V)
-	iverilog $(TEST).vl -o $(TEST)
+	iverilog -g2005-sv $(TEST).vl -o $(TEST)
 
 run: $(TEST)
 	vvp $(TEST)
