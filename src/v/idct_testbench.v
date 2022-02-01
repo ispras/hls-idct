@@ -71,29 +71,29 @@
 `define TEST(number) \
   clock <= 1; \
   for (i = 0; i < 64; i = i + 1) begin \
-    s_tdata <= b[i]; \
-    s_tvalid <= 1; \
+    slave_tdata <= b[i]; \
+    slave_tvalid <= 1; \
     #5; \
     clock <= 0; \
     #5; \
     clock <= 1; \
   end \
-  s_tvalid <= 0; \
+  slave_tvalid <= 0; \
   #5; \
   clock <= 0; \
-  m_tready <= 1; \
+  master_tready <= 1; \
   #5; \
   clock <= 1; \
   for (i = 0; i < 64; i = i + 1) begin \
-    if (m_tvalid) begin \
-      out_reg[i] <= m_tdata; \
+    if (master_tvalid) begin \
+      out_reg[i] <= master_tdata; \
     end \
     #5; \
     clock <= 0; \
     #5; \
     clock <= 1; \
   end \
-  m_tready <= 0; \
+  master_tready <= 0; \
   if (`ARRAY_TO_BITVECTOR(out_reg) != `REF``number) begin \
     $display("[FAIL] test #number:"); \
     $display("expected value is 0x%x\nreceived value is 0x%x", \
@@ -107,29 +107,29 @@
 `define TEST_WIDE(number) \
   clock <= 1; \
   for (i = 0; i < 8; i = i + 1) begin \
-    s_tdata_wide <= `ROW_OF_ARRAY(b, i*8); \
-    s_tvalid_wide <= 1; \
+    slave_tdata_wide <= `ROW_OF_ARRAY(b, i*8); \
+    slave_tvalid_wide <= 1; \
     #5; \
     clock <= 0; \
     #5; \
     clock <= 1; \
   end \
-  s_tvalid_wide <= 0; \
+  slave_tvalid_wide <= 0; \
   #5; \
   clock <= 0; \
-  m_tready_wide <= 1; \
+  master_tready_wide <= 1; \
   #5; \
   clock <= 1; \
   for (i = 0; i < 8; i = i + 1) begin \
-    if (m_tvalid_wide) begin \
-      `ROW_OF_ARRAY(out_reg, i*8) <= m_tdata_wide; \
+    if (master_tvalid_wide) begin \
+      `ROW_OF_ARRAY(out_reg, i*8) <= master_tdata_wide; \
     end \
     #5; \
     clock <= 0; \
     #5; \
     clock <= 1; \
   end \
-  m_tready_wide <= 0; \
+  master_tready_wide <= 0; \
   if (`ARRAY_TO_BITVECTOR(out_reg) != `REF``number) begin \
     $display("[FAIL] wtest #number:"); \
     $display("expected value is 0x%x\nreceived value is 0x%x", \
@@ -146,28 +146,28 @@ integer i;
 reg signed [`WIN-1:0] b [63:0];
 reg [`WOUT-1:0] out_reg [63:0];
 
-reg signed [`WIN-1:0] s_tdata;
-reg s_tvalid;
-wire s_tready;
-wire signed [`WOUT-1:0] m_tdata;
-wire m_tvalid;
-reg m_tready;
+reg signed [`WIN-1:0] slave_tdata;
+reg slave_tvalid;
+wire slave_tready;
+wire signed [`WOUT-1:0] master_tdata;
+wire master_tvalid;
+reg master_tready;
 reg clock;
 reg reset;
 
-reg signed [`WIN*8-1:0] s_tdata_wide;
-reg s_tvalid_wide;
-wire s_tready_wide;
-wire signed [`WOUT*8-1:0] m_tdata_wide;
-wire m_tvalid_wide;
-reg m_tready_wide;
+reg signed [`WIN*8-1:0] slave_tdata_wide;
+reg slave_tvalid_wide;
+wire slave_tready_wide;
+wire signed [`WOUT*8-1:0] master_tdata_wide;
+wire master_tvalid_wide;
+reg master_tready_wide;
 
 
-axi_stream_wrappered_idct idct(m_tdata, m_tvalid, m_tready,
-                               s_tdata, s_tvalid, s_tready, clock, reset);
+axi_stream_wrappered_idct idct(master_tdata, master_tvalid, master_tready,
+                               slave_tdata, slave_tvalid, slave_tready, clock, reset);
 
-wide_axi_stream_wrappered_idct idct_wide(m_tdata_wide, m_tvalid_wide, m_tready_wide,
-                                         s_tdata_wide, s_tvalid_wide, s_tready_wide, clock, reset);
+wide_axi_stream_wrappered_idct idct_wide(master_tdata_wide, master_tvalid_wide, master_tready_wide,
+                                         slave_tdata_wide, slave_tvalid_wide, slave_tready_wide, clock, reset);
 
 initial begin
   $dumpfile("test.vcd");
@@ -175,9 +175,9 @@ initial begin
 
   reset <= 0;
   clock <= 0;
-  s_tdata <= 0;
-  s_tvalid <= 0;
-  m_tready <= 0;
+  slave_tdata <= 0;
+  slave_tvalid <= 0;
+  master_tready <= 0;
   clock <= 0;
   #5;
   clock <= 1;

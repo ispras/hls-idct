@@ -71,8 +71,8 @@ end
 endgenerate
 endmodule // Fast_IDCT
 
-module axi_stream_wrappered_idct(output [`WOUT-1:0] m_tdata, output m_tvalid, input m_tready,
-                                 input [`WIN-1:0] s_tdata, input s_tvalid, output s_tready,
+module axi_stream_wrappered_idct(output [`WOUT-1:0] master_tdata, output master_tvalid, input master_tready,
+                                 input [`WIN-1:0] slave_tdata, input slave_tvalid, output slave_tready,
                                  input clock, input reset_n);
 reg [`WIN-1:0] in_buff [63:0];
 reg [`WOUT-1:0] out_buff [63:0];
@@ -98,8 +98,8 @@ always @(posedge clock) begin
       sample_out <= 0;
       start_out <= 1;
     end
-    if (s_tvalid && ready) begin
-      in_buff[in_counter] <= s_tdata;
+    if (slave_tvalid && ready) begin
+      in_buff[in_counter] <= slave_tdata;
       in_counter <= in_counter + 1;
       if (in_counter == 6'h3f) begin
         if (~start_out) begin
@@ -110,7 +110,7 @@ always @(posedge clock) begin
       end
     end
     if (start_out) begin
-      if (m_tready) begin
+      if (master_tready) begin
         out_counter <= out_counter + 1;
         if (out_counter == 6'h3f) begin
           start_out <= 0;
@@ -124,26 +124,7 @@ always @(posedge clock) begin
     end
   end
 end
-assign m_tdata = start_out ? out_buff[out_counter] : 0;
-assign m_tvalid = start_out ? 1 : 0;
-assign s_tready = ready;
-endmodule
-
-module main (
-  input [14:0] in_iface,
-  output [10:0] out_iface,
-  input CLK
-);
-
-axi_stream_wrappered_idct idct (
-  .clock(CLK),
-  .reset_n(~in_iface[0]),
-  .s_tdata(in_iface[12:1]),
-  .s_tvalid(in_iface[13]),
-  .s_tready(out_iface[0]),
-  .m_tdata(out_iface[9:1]),
-  .m_tvalid(out_iface[10]),
-  .m_tready(in_iface[14])
-);
-
+assign master_tdata = start_out ? out_buff[out_counter] : 0;
+assign master_tvalid = start_out ? 1 : 0;
+assign slave_tready = ready;
 endmodule
