@@ -35,6 +35,7 @@ import Vector::*;
 
 typedef 8 DataDim;
 typedef TMul#(DataDim, DataDim) DataSize;
+typedef UInt#(TAdd#(TLog#(DataDim), 1)) CountType;
 
 /* Input data */
 
@@ -74,8 +75,8 @@ interface Idct_ifc#(type iType, type oType);
 endinterface
 
 interface IdctAxiWrapper_ifc;
-  method Action send(InputType x);
-  method ActionValue#(OutputType) recv();
+  method Action sendRow(InDataRow x);
+  method ActionValue#(OutDataCol) recvRow();
 endinterface: IdctAxiWrapper_ifc
 
 module mkIdctRow(Idct_ifc#(InDataRow, DataFrag));
@@ -208,7 +209,6 @@ module mkIdctCol(Idct_ifc#(DataFrag, OutDataCol));
   endmethod
 endmodule: mkIdctCol
 
-(* synthesize *)
 module mkIdct (Idct_ifc#(InDataType, OutDataType));
 
   RowProcessors rows <- replicateM(mkIdctRow);
@@ -253,30 +253,46 @@ endmodule: mkIdct
 (* synthesize *)
 module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
 
-  Reg#(int) count                         <- mkReg(0);
+  Reg#(CountType) count                   <- mkReg(0);
   Reg#(State) state                       <- mkReg(IDLE);
   Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
   InDataReg inputs                        <- replicateM(mkRegU);
   OutDataReg outputs                      <- replicateM(mkRegU);
 
-  int size = fromInteger(valueOf(DataSize));
+  Integer dim = valueOf(DataDim);
+  CountType rowSize = fromInteger(dim);
 
-  rule run ((state == HAVE_DATA) && (count == size));
+  function Integer getRowNum(CountType x);
+    return (x == 0) ? 0 :
+        ((x == 1) ? 1 :
+            ((x == 2) ? 2 :
+                ((x == 3) ? 3 :
+                    ((x == 4) ? 4 : (x == 5) ? 5 : (x == 6) ? 6 : 7))));
+  endfunction
+
+  rule run ((state == HAVE_DATA) && (count == rowSize));
     OutDataType out <- idct.run(readVReg(inputs));
     writeVReg(outputs, out);
     count <= 0;
     state <= DONE;
   endrule
 
-  method Action send(InputType x) if ((state == IDLE) && (count < size));
-    inputs[count] <= x;
+  method Action sendRow(InDataRow x) if ((state == IDLE) && (count < rowSize));
+    for (Integer i = 0; i < dim; i = i + 1) begin
+      inputs[getRowNum(count) * 8 + i] <= x[i];
+    end
     count <= count + 1;
     state <= HAVE_DATA;
   endmethod
 
-  method ActionValue#(OutputType) recv() if ((state == DONE) && (count < size));
+  method ActionValue#(OutDataCol) recvRow() if ((state == DONE) && (count < rowSize));
+    OutDataCol result = newVector;
+    for(Integer i = 0; i < dim; i = i + 1) begin
+      result[i] = outputs[getRowNum(count) * 8 + i];
+    end
     count <= count + 1;
-    return outputs[count];
+    state <= IDLE;
+    return result;
   endmethod
 endmodule: mkIdctAxiWrapper
 
