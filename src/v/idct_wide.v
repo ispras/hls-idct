@@ -28,7 +28,6 @@
 module wide_Fast_IDCT(input [`WIN*8*8-1:0] in, output [`WOUT*8*8-1:0] out);
 
 wire [`WIM*8*8-1:0] rtc;
-wire [`WOUT*8*8-1:0] out;
 
 genvar i;
 generate for (i=1; i<8*8; i=i+8) begin
