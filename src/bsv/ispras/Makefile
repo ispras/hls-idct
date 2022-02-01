@@ -21,7 +21,6 @@ EXEFILE_VSIM ?= exe_HW_vsim
 #	-show-range-conflict: extended debug printing upon scheduling conflicts
 
 BSCFLAGS = -show-schedule \
-  -keep-fires \
 	-show-range-conflict \
 	+RTS -K512M -RTS
 
