@@ -59,7 +59,6 @@ module idctrow(input [`WIN-1:0] i0, input [`WIN-1:0] i1, input [`WIN-1:0] i2, in
                output [`WIM-1:0] b4, output [`WIM-1:0] b5, output [`WIM-1:0] b6, output [`WIM-1:0] b7);
 
 wire signed [`WIN*2-1:0] x [7:0][3:0];
-wire return_zero;
 
 // zeroth stage
 assign x[0][0] = ($signed(i0) << 11) + 128;
@@ -133,7 +132,6 @@ module idctcol(input [`WIM-1:0] i0, input [`WIM-1:0] i1, input [`WIM-1:0] i2, in
                output [`WOUT-1:0] b4, output [`WOUT-1:0] b5, output [`WOUT-1:0] b6, output [`WOUT-1:0] b7);
 
 wire signed [`WIM*2-1:0] x [7:0][3:0];
-wire return_zero;
 
 // zeroth stage
 assign x[0][0] = ($signed(i0) << 8) + 8192;
