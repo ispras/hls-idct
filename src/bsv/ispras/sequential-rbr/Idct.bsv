@@ -34,7 +34,6 @@ import Vector::*;
 
 typedef 8 DataDim;
 typedef TMul#(DataDim, DataDim) DataSize;
-typedef UInt#(TAdd#(TLog#(DataDim), 1)) CountType;
 
 typedef 2841 W1; /* 2048*sqrt(2)*cos(1*pi/16) */
 typedef 2676 W2; /* 2048*sqrt(2)*cos(2*pi/16) */
@@ -268,57 +267,5 @@ module mkIdct (Idct_iface);
   endmethod
 
 endmodule: mkIdct
-
-/* AXI-like wrapper (for synthesis only). */
-
-(* synthesize *)
-module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
-
-  Reg#(CountType) count <- mkReg(0);
-  Reg#(State) state     <- mkReg(IDLE);
-  Idct_iface idct       <- mkIdct;
-  InDataReg inputs      <- replicateM(mkRegU);
-  OutDataReg outputs    <- replicateM(mkRegU);
-
-  Integer dim = valueOf(DataDim);
-  CountType rowSize = fromInteger(dim);
-
-  function Integer getRowNum(CountType x);
-    return (x == 0) ? 0 :
-        ((x == 1) ? 1 :
-            ((x == 2) ? 2 :
-                ((x == 3) ? 3 :
-                    ((x == 4) ? 4 : (x == 5) ? 5 : (x == 6) ? 6 : 7))));
-  endfunction
-
-  rule run ((state == HAVE_DATA) && (count == rowSize));
-    idct.start(readVReg(inputs));
-    count <= 0;
-  endrule
-
-  rule write_result ((state == HAVE_DATA) && (count == 0));
-    OutDataType out <- idct.result();
-    writeVReg(outputs, out);
-    state <= DONE;
-  endrule
-
-  method Action sendRow(InDataRow x) if ((state == IDLE) && (count < rowSize));
-    for (Integer i = 0; i < dim; i = i + 1) begin
-      inputs[getRowNum(count) * 8 + i] <= x[i];
-    end
-    count <= count + 1;
-    state <= HAVE_DATA;
-  endmethod
-
-  method ActionValue#(OutDataCol) recvRow() if ((state == DONE) && (count < rowSize));
-    OutDataCol result = newVector;
-    for(Integer i = 0; i < dim; i = i + 1) begin
-      result[i] = outputs[getRowNum(count) * 8 + i];
-    end
-    count <= count + 1;
-    state <= IDLE;
-    return result;
-  endmethod
-endmodule: mkIdctAxiWrapper
 
 endpackage // Idct
