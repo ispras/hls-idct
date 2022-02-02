@@ -1,0 +1,44 @@
+/*
+ * Copyright 2022 ISP RAS (http://www.ispras.ru)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
+ * the License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
+ * Wrapper for IDCT & idct_test0 input/ouput data.
+ */
+package IdctTest0Wrapper;
+
+import Idct::*;
+import IdctTestbench::*;
+import Vector::*;
+
+interface IdctWrapper_ifc;
+  method ActionValue#(Bool) run();
+endinterface: IdctWrapper_ifc
+
+(* synthesize *)
+module mkIdctTest0Wrapper(IdctWrapper_ifc);
+
+  Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
+
+  method ActionValue#(Bool) run();
+    InDataType in = genWith(idct0_test_init);
+    OutDataType out <- idct.run(in);
+    OutDataType want = genWith(idct0_test_want);
+    return (out == want);
+  endmethod
+
+endmodule: mkIdctTest0Wrapper
+
+endpackage

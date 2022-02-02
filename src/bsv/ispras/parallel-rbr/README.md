@@ -1,0 +1,8 @@
+# Parallel-RBR
+Parallel implementation of IDCT algorithm. The IDCT module elaborates rows of
+the input matrix in parallel, next elaborates it's columns in parallel too.
+
+The program includes AXI-like wrapper that operates in a row-by-row (RBR)
+manner. It means, that the wrapper accumulates rows of an input matrix,
+next passes the matrix to IDCT module, receives an output matrix and sends
+output matrix' rows back.
