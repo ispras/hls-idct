@@ -59,7 +59,7 @@ short blk[8];
   }
 
   x0 = (blk[0]<<11) + 128; /* for proper rounding in the fourth stage */
-//printf("(0) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x3, x4, x5, x6, x7, x8);
+
   /* first stage */
   x8 = W7*(x4+x5);
   x4 = x8 + (W1-W7)*x4;
@@ -67,7 +67,7 @@ short blk[8];
   x8 = W3*(x6+x7);
   x6 = x8 - (W3-W5)*x6;
   x7 = x8 - (W3+W5)*x7;
-//printf("(1) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x3, x4, x5, x6, x7, x8);
+
   /* second stage */
   x8 = x0 + x1;
   x0 -= x1;
@@ -78,7 +78,7 @@ short blk[8];
   x4 -= x6;
   x6 = x5 + x7;
   x5 -= x7;
-//printf("(2) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x3, x4, x5, x6, x7, x8);
+
   /* third stage */
   x7 = x8 + x3;
   x8 -= x3;
@@ -86,7 +86,7 @@ short blk[8];
   x0 -= x2;
   x2 = (181*(x4+x5)+128)>>8;
   x4 = (181*(x4-x5)+128)>>8;
-//printf("(3) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x3, x4, x5, x6, x7, x8);
+
   /* fourth stage */
   blk[0] = (x7+x1)>>8;
   blk[1] = (x3+x2)>>8;
@@ -96,7 +96,6 @@ short blk[8];
   blk[5] = (x0-x4)>>8;
   blk[6] = (x3-x2)>>8;
   blk[7] = (x7-x1)>>8;
-//for(int i = 0; i < 9; i++) printf("blk[%d]=0x%x\n", i, blk[i]);
 }
 
 /* column (vertical) IDCT
@@ -117,13 +116,13 @@ short blk[8];
   if (!((x1 = (blk[8*4]<<8)) | (x2 = blk[8*6]) | (x3 = blk[8*2]) |
         (x4 = blk[8*1]) | (x5 = blk[8*7]) | (x6 = blk[8*5]) | (x7 = blk[8*3])))
   {
-    blk[8*0]=//blk[8*1]=blk[8*2]=blk[8*3]=blk[8*4]=blk[8*5]=blk[8*6]=blk[8*7]=
+    blk[8*0]=blk[8*1]=blk[8*2]=blk[8*3]=blk[8*4]=blk[8*5]=blk[8*6]=blk[8*7]=
       iclip((blk[8*0]+32)>>6);
     return;
   }
 
   x0 = (blk[8*0]<<8) + 8192;
-printf("(0) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x3, x4, x5, x6, x7, x8);
+
   /* first stage */
   x8 = W7*(x4+x5) + 4;
   x4 = (x8+(W1-W7)*x4)>>3;
@@ -131,7 +130,7 @@ printf("(0) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0
   x8 = W3*(x6+x7) + 4;
   x6 = (x8-(W3-W5)*x6)>>3;
   x7 = (x8-(W3+W5)*x7)>>3;
-printf("(1) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x3, x4, x5, x6, x7, x8);
+
   /* second stage */
   x8 = x0 + x1;
   x0 -= x1;
@@ -142,7 +141,7 @@ printf("(1) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0
   x4 -= x6;
   x6 = x5 + x7;
   x5 -= x7;
-printf("(2) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x3, x4, x5, x6, x7, x8);
+
   /* third stage */
   x7 = x8 + x3;
   x8 -= x3;
@@ -150,7 +149,7 @@ printf("(2) x0=0x%x x1=0x%x x2=0x%x x3=0x%x x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0
   x0 -= x2;
   x2 = (181*(x4+x5)+128)>>8;
   x4 = (181*(x4-x5)+128)>>8;
-printf("(3) x0=0x%x x1=0x%x x2=0x%x (%d) x3=0x%x (%d) x4=0x%x x5=0x%x x6=0x%x x7=0x%x x8=0x%x\n", x0, x1, x2, x2, x3, x3, x4, x5, x6, x7, x8);
+
   /* fourth stage */
   blk[8*0] = iclip((x7+x1)>>14);
   blk[8*1] = iclip((x3+x2)>>14);
@@ -160,8 +159,6 @@ printf("(3) x0=0x%x x1=0x%x x2=0x%x (%d) x3=0x%x (%d) x4=0x%x x5=0x%x x6=0x%x x7
   blk[8*5] = iclip((x0-x4)>>14);
   blk[8*6] = iclip((x3-x2)>>14);
   blk[8*7] = iclip((x7-x1)>>14);
-for(int i = 0; i < 8; i++) printf("blk[%d]=0x%x (%d)\n", i, blk[8*i], blk[8*i]);
-//printf("test=%x (iclp=%x)\n", (x3+x2)>>14, iclp[(x3+x2)>>14]);
 }
 
 /* two dimensional inverse discrete cosine transform */
@@ -181,7 +178,9 @@ void Top_Fast_IDCT(short block[64], short out_block[64])
 {
 #pragma HLS INTERFACE axis port=block
 #pragma HLS INTERFACE axis port=out_block
-	  int i;
+//  #pragma HLS PIPELINE style=flp
+//  pragma HLS DATAFLOW
+ 	  int i;
 	  short intl_block[64];
       for (i=0; i<64; i++)
         intl_block[i] = block[i];
@@ -208,23 +207,6 @@ static short iclip(int i)
 {
   if (i < -256) return -256;
   else if (i > 255) return 255;
-  else return 255;
+  else return i;
 }
 
-short block[64];
-int main (void)
-{
-  int i;
-//  #pragma HLS PIPELINE style=flp
-//  pragma HLS DATAFLOW
-  for(i = 0; i < 64; i++) {
-    block[i] = i;
-    printf("%d ", block[i]);
-  } printf("\n");
-  //Initialize_Fast_IDCT();
-  Fast_IDCT(block);
-  for(i = 0; i < 64; i++) {
-    printf("%x ", block[i]);
-  } printf("\n");
-  return 0;
-}
