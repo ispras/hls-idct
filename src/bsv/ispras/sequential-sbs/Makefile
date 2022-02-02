@@ -4,9 +4,11 @@ vlog: rtl vlink vsim
 
 # ----------------------------------------------------------------
 
+TOPFILE   ?= ./IdctAxiWrapper.bsv
 TOPFILE   ?= ./IdctTestbench.bsv
 #TOPFILE   ?= ./IdctTest0Wrapper.bsv
 
+TOPMODULE ?= mkIdctAxiWrapper
 TOPMODULE ?= mkIdctTestbench
 #TOPMODULE ?= mkIdctTest0Wrapper
 EXEFILE_BSIM ?= exe_HW_bsim

@@ -246,37 +246,4 @@ module mkIdct (Idct_ifc#(InDataType, OutDataType));
   endmethod
 
 endmodule: mkIdct
-
-/* AXI-like wrapper (for synthesis only) */
-
-(* synthesize *)
-module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
-
-  Reg#(int) count                         <- mkReg(0);
-  Reg#(State) state                       <- mkReg(IDLE);
-  Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
-  InDataReg inputs                        <- replicateM(mkRegU);
-  OutDataReg outputs                      <- replicateM(mkRegU);
-
-  int size = fromInteger(valueOf(DataSize));
-
-  rule run ((state == HAVE_DATA) && (count == size));
-    OutDataType out <- idct.run(readVReg(inputs));
-    writeVReg(outputs, out);
-    count <= 0;
-    state <= DONE;
-  endrule
-
-  method Action send(InputType x) if ((state == IDLE) && (count < size));
-    inputs[count] <= x;
-    count <= count + 1;
-    state <= HAVE_DATA;
-  endmethod
-
-  method ActionValue#(OutputType) recv() if ((state == DONE) && (count < size));
-    count <= count + 1;
-    return outputs[count];
-  endmethod
-endmodule: mkIdctAxiWrapper
-
 endpackage // Idct

@@ -35,7 +35,6 @@ import Vector::*;
 
 typedef 8 DataDim;
 typedef TMul#(DataDim, DataDim) DataSize;
-typedef UInt#(TAdd#(TLog#(DataDim), 1)) CountType;
 
 /* Input data */
 
@@ -247,53 +246,4 @@ module mkIdct (Idct_ifc#(InDataType, OutDataType));
   endmethod
 
 endmodule: mkIdct
-
-/* AXI-like wrapper (for synthesis only) */
-
-(* synthesize *)
-module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
-
-  Reg#(CountType) count                   <- mkReg(0);
-  Reg#(State) state                       <- mkReg(IDLE);
-  Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
-  InDataReg inputs                        <- replicateM(mkRegU);
-  OutDataReg outputs                      <- replicateM(mkRegU);
-
-  Integer dim = valueOf(DataDim);
-  CountType rowSize = fromInteger(dim);
-
-  function Integer getRowNum(CountType x);
-    return (x == 0) ? 0 :
-        ((x == 1) ? 1 :
-            ((x == 2) ? 2 :
-                ((x == 3) ? 3 :
-                    ((x == 4) ? 4 : (x == 5) ? 5 : (x == 6) ? 6 : 7))));
-  endfunction
-
-  rule run ((state == HAVE_DATA) && (count == rowSize));
-    OutDataType out <- idct.run(readVReg(inputs));
-    writeVReg(outputs, out);
-    count <= 0;
-    state <= DONE;
-  endrule
-
-  method Action sendRow(InDataRow x) if ((state == IDLE) && (count < rowSize));
-    for (Integer i = 0; i < dim; i = i + 1) begin
-      inputs[getRowNum(count) * 8 + i] <= x[i];
-    end
-    count <= count + 1;
-    state <= HAVE_DATA;
-  endmethod
-
-  method ActionValue#(OutDataCol) recvRow() if ((state == DONE) && (count < rowSize));
-    OutDataCol result = newVector;
-    for(Integer i = 0; i < dim; i = i + 1) begin
-      result[i] = outputs[getRowNum(count) * 8 + i];
-    end
-    count <= count + 1;
-    state <= IDLE;
-    return result;
-  endmethod
-endmodule: mkIdctAxiWrapper
-
 endpackage // Idct
