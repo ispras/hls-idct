@@ -78,11 +78,6 @@ interface Idct_iface;
   method ActionValue#(OutDataType) result();
 endinterface: Idct_iface
 
-interface IdctAxiWrapper_iface;
-  method Action send(InputType x);
-  method ActionValue#(OutputType) recv();
-endinterface: IdctAxiWrapper_iface
-
 module mkIdct (Idct_iface);
 
   DataReg blk       <- replicateM(mkRegU);

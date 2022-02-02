@@ -73,11 +73,6 @@ interface Idct_ifc#(type iType, type oType);
   method ActionValue#(oType) run(iType x);
 endinterface
 
-interface IdctAxiWrapper_ifc;
-  method Action sendRow(InDataRow x);
-  method ActionValue#(OutDataCol) recvRow();
-endinterface: IdctAxiWrapper_ifc
-
 module mkIdctRow(Idct_ifc#(InDataRow, DataFrag));
 
   method ActionValue#(DataFrag) run(InDataRow x);
