@@ -24,6 +24,11 @@ import Vector::*;
 
 typedef UInt#(TAdd#(TLog#(DataDim), 1)) CountType;
 
+interface IdctAxiWrapper_ifc;
+  method Action sendRow(InDataRow x);
+  method ActionValue#(OutDataCol) recvRow();
+endinterface: IdctAxiWrapper_ifc
+
 (* synthesize *)
 module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
 

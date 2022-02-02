@@ -47,7 +47,6 @@ typedef 181 R2;  /* 256/sqrt(2) */
 
 typedef 12 InputLength;
 typedef Int#(InputLength) InputType;
-typedef Vector#(DataDim, InputType) InDataRow;
 typedef Vector#(DataSize, InputType) InDataType;
 typedef Vector#(DataSize, Reg#(InputType)) InDataReg;
 
@@ -62,7 +61,6 @@ typedef Vector#(DataSize, Reg#(DataInt)) DataReg;
 
 typedef 9 OutputLength;
 typedef Int#(OutputLength) OutputType;
-typedef Vector#(DataDim, OutputType) OutDataCol;
 typedef Vector#(DataSize, OutputType) OutDataType;
 typedef Vector#(DataSize, Reg#(OutputType)) OutDataReg;
 
@@ -79,11 +77,6 @@ interface Idct_iface;
   method Action start(InDataType x);
   method ActionValue#(OutDataType) result();
 endinterface: Idct_iface
-
-interface IdctAxiWrapper_ifc;
-  method Action sendRow(InDataRow x);
-  method ActionValue#(OutDataCol) recvRow();
-endinterface: IdctAxiWrapper_ifc
 
 module mkIdct (Idct_iface);
 

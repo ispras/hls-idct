@@ -22,6 +22,11 @@ package IdctAxiWrapper;
 import Idct::*;
 import Vector::*;
 
+interface IdctAxiWrapper_iface;
+  method Action send(InputType x);
+  method ActionValue#(OutputType) recv();
+endinterface: IdctAxiWrapper_iface
+
 (* synthesize *)
 module mkIdctAxiWrapper(IdctAxiWrapper_iface);
 
