@@ -13,7 +13,6 @@
 /* right shift: (-2)>>1 == -1 , (-3)>>1 == -2               */
 
 #include "config.h"
-#include "stdio.h"
 
 #define W1 2841 /* 2048*sqrt(2)*cos(1*pi/16) */
 #define W2 2676 /* 2048*sqrt(2)*cos(2*pi/16) */
@@ -23,7 +22,7 @@
 #define W7 565  /* 2048*sqrt(2)*cos(7*pi/16) */
 
 /* global declarations */
-void Initialize_Fast_IDCT _ANSI_ARGS_((void));
+//void Initialize_Fast_IDCT _ANSI_ARGS_((void));
 void Fast_IDCT _ANSI_ARGS_((short *block));
 
 /* private data */
@@ -174,26 +173,40 @@ short *block;
     idctcol(block+i);
 }
 
-void Top_Fast_IDCT(short block[64], short out_block[64])
+void Top_Fast_IDCT(long long ibl[8], long long ibh[8], long long obl[8], long long obh[8])
 {
-#pragma HLS INTERFACE axis port=block
-#pragma HLS INTERFACE axis port=out_block
+#pragma HLS INTERFACE axis port=ibl
+#pragma HLS INTERFACE axis port=ibh
+#pragma HLS INTERFACE axis port=obl
+#pragma HLS INTERFACE axis port=obh
 //  #pragma HLS PIPELINE style=flp
 //  pragma HLS DATAFLOW
- 	  int i;
-	  short intl_block[64];
-      for (i=0; i<64; i++)
-        intl_block[i] = block[i];
+  int i, j;
+  short intl_block[64];
+  for (i=0; i<8; i++) {
+    for (j=0; j<4; j++) {
+      intl_block[i * 8 + j]     = ibl[i] >> (j * 16);
+      intl_block[i * 8 + j + 4] = ibh[i] >> (j * 16);
+    }
+  }
 
-	  for (i=0; i<8; i++)
-	    idctrow(intl_block+8*i);
+  for (i=0; i<8; i++)
+    idctrow(intl_block+8*i);
 
-	  for (i=0; i<8; i++)
-	    idctcol(intl_block+i);
+  for (i=0; i<8; i++)
+    idctcol(intl_block+i);
 
-      for (i=0; i<64; i++)
-        out_block[i] = intl_block[i];
+  for (i=0; i<8; i++) {
+    long long templ = 0, temph = 0;
+    for (j=0; j<4; j++) {
+      templ |= (long long)(unsigned short)intl_block[i * 8 + j] << (j * 16);
+      temph |= (long long)(unsigned short)intl_block[i * 8 + j + 4] << (j * 16);
+    }
+    obl[i] = templ;
+    obh[i] = temph;
+  }
 }
+
 /*void Initialize_Fast_IDCT()
 {
   int i;

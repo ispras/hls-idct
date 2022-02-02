@@ -11,13 +11,30 @@
 
 //void Initialize_Fast_IDCT(void);
 void Fast_IDCT(short *block);
+void Top_Fast_IDCT(long long ibl[8], long long ibh[8], long long obl[8], long long obh[8]);
 
 int test(const short *input, const short *output) {
   short block[64];
 
-  memcpy(block, input, sizeof(block));
-  Fast_IDCT(block);
-
+  //memcpy(block, input, sizeof(block));
+  //Fast_IDCT(block);
+  int i, j;
+  long long ibl[8], ibh[8];
+  for (i = 0; i < 8; i++) {
+    ibl[i] = ibh[i] = 0;
+    for (j = 0; j < 4; j++) {
+      ibl[i] |= (long long)(unsigned short)input[i * 8 + j] << (16 * j);
+      ibh[i] |= (long long)(unsigned short)input[i * 8 + j + 4] << (16 * j);
+    }
+  }
+  long long obl[8], obh[8];
+  Top_Fast_IDCT(ibl, ibh, obl, obh);
+  for (i = 0; i < 8; i++) {
+    for (j = 0; j < 4; j++) {
+      block[i * 8 + j] = obl[i] >> (16 * j);
+      block[i * 8 + j + 4] = obh[i] >> (16 * j);
+    }
+  }
   return memcmp(block, output, sizeof(block));
 }
 
