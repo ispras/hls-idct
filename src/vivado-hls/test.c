@@ -10,7 +10,7 @@
   } while(0)
 
 //void Initialize_Fast_IDCT(void);
-void Fast_IDCT(short *block);
+//void Fast_IDCT(short *block);
 void Top_Fast_IDCT(long long ibl[8], long long ibh[8], long long obl[8], long long obh[8]);
 
 int test(const short *input, const short *output) {

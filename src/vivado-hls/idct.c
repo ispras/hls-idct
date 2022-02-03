@@ -23,7 +23,7 @@
 
 /* global declarations */
 //void Initialize_Fast_IDCT _ANSI_ARGS_((void));
-void Fast_IDCT _ANSI_ARGS_((short *block));
+//void Fast_IDCT _ANSI_ARGS_((short *block));
 
 /* private data */
 //static short iclip[1024]; /* clipping table */
@@ -31,8 +31,8 @@ void Fast_IDCT _ANSI_ARGS_((short *block));
 static short iclip(int i);
 
 /* private prototypes */
-static void idctrow _ANSI_ARGS_((short *blk));
-static void idctcol _ANSI_ARGS_((short *blk));
+//static void idctrow _ANSI_ARGS_((short *blk));
+//static void idctcol _ANSI_ARGS_((short *blk));
 
 /* row (horizontal) IDCT
  *
@@ -161,7 +161,7 @@ short blk[8];
 }
 
 /* two dimensional inverse discrete cosine transform */
-void Fast_IDCT(block)
+/*void Fast_IDCT(block)
 short *block;
 {
   int i;
@@ -171,7 +171,7 @@ short *block;
 
   for (i=0; i<8; i++)
     idctcol(block+i);
-}
+}*/
 
 void Top_Fast_IDCT(long long ibl[8], long long ibh[8], long long obl[8], long long obh[8])
 {
@@ -179,8 +179,7 @@ void Top_Fast_IDCT(long long ibl[8], long long ibh[8], long long obl[8], long lo
 #pragma HLS INTERFACE axis port=ibh
 #pragma HLS INTERFACE axis port=obl
 #pragma HLS INTERFACE axis port=obh
-//  #pragma HLS PIPELINE style=flp
-//  pragma HLS DATAFLOW
+//#pragma HLS PIPELINE
   int i, j;
   short intl_block[64];
   for (i=0; i<8; i++) {
