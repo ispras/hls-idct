@@ -26,7 +26,7 @@ typedef UInt#(TAdd#(TLog#(DataDim), 1)) CountType;
 typedef Vector#(DataDim, InputType) InDataRow;
 typedef Vector#(DataDim, OutputType) OutDataRow;
 
-typedef enum { IDLE, SEND, NEXT_SEND, RUN, RECV, NEXT_RECV } AxiState deriving(Bits, Eq);
+typedef enum { IDLE, SEND, RUN, RECV } AxiState deriving(Bits, Eq);
 
 function Integer getRowNum(CountType x);
   return (x == 0) ? 0 :
