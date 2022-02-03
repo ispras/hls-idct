@@ -22,6 +22,8 @@ package IdctAxiWrapper;
 import Idct::*;
 import Vector::*;
 
+typedef UInt#(TAdd#(TLog#(DataSize), 1)) CountType;
+
 interface IdctAxiWrapper_iface;
   method Action send(InputType x);
   method ActionValue#(OutputType) recv();
@@ -30,13 +32,13 @@ endinterface: IdctAxiWrapper_iface
 (* synthesize *)
 module mkIdctAxiWrapper(IdctAxiWrapper_iface);
 
-  Reg#(int) count    <- mkReg(0);
+  Reg#(CountType) count    <- mkReg(0);
   Reg#(State) state  <- mkReg(IDLE);
   Idct_iface idct    <- mkIdct;
   InDataReg inputs   <- replicateM(mkRegU);
   OutDataReg outputs <- replicateM(mkRegU);
 
-  int size = fromInteger(valueOf(DataSize));
+  CountType size = fromInteger(valueOf(DataSize));
 
   rule run ((state == IDLE) && (count == size));
     idct.start(readVReg(inputs));
