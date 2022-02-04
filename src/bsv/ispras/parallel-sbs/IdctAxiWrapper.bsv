@@ -17,44 +17,45 @@
 /*
  * IDCT AXI-like wrapper that operates in Symbol-By-Symbol (SBS) manner.
  */
-package IdctAxiWrapper;
+ package IdctAxiWrapper;
 
-import Idct::*;
-import Vector::*;
+ import Idct::*;
+ import Vector::*;
 
-interface IdctAxiWrapper_ifc;
-  method Action send(InputType x);
-  method ActionValue#(OutputType) recv();
-endinterface: IdctAxiWrapper_ifc
+ typedef UInt#(TAdd#(TLog#(DataSize), 1)) CountType;
 
-(* synthesize *)
-module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
+ interface IdctAxiWrapper_iface;
+   method Action send(InputType x);
+   method ActionValue#(OutputType) recv();
+ endinterface: IdctAxiWrapper_iface
 
-  Reg#(int) count                         <- mkReg(0);
-  Reg#(State) state                       <- mkReg(IDLE);
-  Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
-  InDataReg inputs                        <- replicateM(mkRegU);
-  OutDataReg outputs                      <- replicateM(mkRegU);
+ (* synthesize *)
+ module mkIdctAxiWrapper(IdctAxiWrapper_iface);
 
-  int size = fromInteger(valueOf(DataSize));
+   Reg#(CountType) count                   <- mkReg(0);
+   Reg#(State) state                       <- mkReg(IDLE);
+   Idct_ifc#(InDataType, OutDataType) idct <- mkIdct;
+   InDataReg inputs                        <- replicateM(mkRegU);
+   OutDataReg outputs                      <- replicateM(mkRegU);
 
-  rule run ((state == HAVE_DATA) && (count == size));
-    OutDataType out <- idct.run(readVReg(inputs));
-    writeVReg(outputs, out);
-    count <= 0;
-    state <= DONE;
-  endrule
+   CountType size = fromInteger(valueOf(DataSize));
 
-  method Action send(InputType x) if ((state == IDLE) && (count < size));
-    inputs[count] <= x;
-    count <= count + 1;
-    state <= HAVE_DATA;
-  endmethod
+   rule run ((state == IDLE) && (count == size));
+     OutDataType result <- idct.run(readVReg(inputs));
+     writeVReg(outputs, result);
+     count <= 0;
+     state <= DONE;
+   endrule
 
-  method ActionValue#(OutputType) recv() if ((state == DONE) && (count < size));
-    count <= count + 1;
-    return outputs[count];
-  endmethod
-endmodule: mkIdctAxiWrapper
+   method Action send(InputType x) if ((state == IDLE) && (count < size));
+     inputs[count] <= x;
+     count <= count + 1;
+   endmethod
 
-endpackage
+   method ActionValue#(OutputType) recv() if ((state == DONE) && (count < size));
+     count <= count + 1;
+     return outputs[count];
+   endmethod
+ endmodule: mkIdctAxiWrapper
+
+ endpackage
