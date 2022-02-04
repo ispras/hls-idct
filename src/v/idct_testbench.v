@@ -1,6 +1,7 @@
 `include "idct_rows_and_cols.v"
 `include "idct.v"
 `include "idct_wide.v"
+`include "idct_wide_1r8c.v"
 
 // Reference values for tests
 `define REF0 {9'h0,   9'h0,   9'h0,   9'h1,   9'h0,   9'h1,   9'h1ff, 9'h6,\
@@ -104,39 +105,40 @@
   end
 
 // Test check
-`define TEST_WIDE(number) \
+`define TEST_WIDE(number, suffix) \
   clock <= 1; \
   for (i = 0; i < 8; i = i + 1) begin \
-    slave_tdata_wide <= `ROW_OF_ARRAY(b, i*8); \
-    slave_tvalid_wide <= 1; \
+    slave_tdata``suffix <= `ROW_OF_ARRAY(b, i*8); \
+    slave_tvalid``suffix <= 1; \
     #5; \
     clock <= 0; \
     #5; \
     clock <= 1; \
   end \
-  slave_tvalid_wide <= 0; \
+  slave_tvalid``suffix <= 0; \
   #5; \
   clock <= 0; \
-  master_tready_wide <= 1; \
+  master_tready``suffix <= 1; \
   #5; \
   clock <= 1; \
   for (i = 0; i < 8; i = i + 1) begin \
-    if (master_tvalid_wide) begin \
-      `ROW_OF_ARRAY(out_reg, i*8) <= master_tdata_wide; \
+    while (~master_tvalid``suffix) begin \
+      #5; clock <= 0; #5; clock <= 1; \
     end \
+    `ROW_OF_ARRAY(out_reg, i*8) <= master_tdata``suffix; \
     #5; \
     clock <= 0; \
     #5; \
     clock <= 1; \
   end \
-  master_tready_wide <= 0; \
+  master_tready``suffix <= 0; \
   if (`ARRAY_TO_BITVECTOR(out_reg) != `REF``number) begin \
-    $display("[FAIL] wtest #number:"); \
+    $display("[FAIL] test``suffix #number:"); \
     $display("expected value is 0x%x\nreceived value is 0x%x", \
              `REF``number, `ARRAY_TO_BITVECTOR(out_reg)); \
     $finish; \
   end else begin \
-    $display("[OK] wtest #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out_reg)); \
+    $display("[OK] test``suffix #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out_reg)); \
   end
 
 
@@ -162,12 +164,21 @@ wire signed [`WOUT*8-1:0] master_tdata_wide;
 wire master_tvalid_wide;
 reg master_tready_wide;
 
+reg signed [`WIN*8-1:0] slave_tdata_1r8c_wide;
+reg slave_tvalid_1r8c_wide;
+wire slave_tready_1r8c_wide;
+wire signed [`WOUT*8-1:0] master_tdata_1r8c_wide;
+wire master_tvalid_1r8c_wide;
+reg master_tready_1r8c_wide;
 
 axi_stream_wrappered_idct idct(master_tdata, master_tvalid, master_tready,
                                slave_tdata, slave_tvalid, slave_tready, clock, reset);
 
 wide_axi_stream_wrappered_idct idct_wide(master_tdata_wide, master_tvalid_wide, master_tready_wide,
                                          slave_tdata_wide, slave_tvalid_wide, slave_tready_wide, clock, reset);
+
+wide_axi_stream_wrappered_1r8c_idct idct_1r8c_wide(master_tdata_1r8c_wide, master_tvalid_1r8c_wide, master_tready_1r8c_wide,
+                                                   slave_tdata_1r8c_wide, slave_tvalid_1r8c_wide, slave_tready_1r8c_wide, clock, reset);
 
 initial begin
   $dumpfile("test.vcd");
@@ -191,14 +202,16 @@ initial begin
     b[i] = -1*i;
   end
   `TEST(0);
-  `TEST_WIDE(0);
+  `TEST_WIDE(0, _wide);
+  `TEST_WIDE(0, _1r8c_wide);
 
   // TEST 1
   for (i = 0; i < 64; i = i + 1) begin
     b[i] = 1*i;
   end
   `TEST(1);
-  `TEST_WIDE(1);
+  `TEST_WIDE(1, _wide);
+  `TEST_WIDE(1, _1r8c_wide);
 
   // TEST 2
   for (i = 0; i < 64; i = i + 1) begin
@@ -208,7 +221,8 @@ initial begin
   b[1] = -1;
   b[2] = -2;
   `TEST(2);
-  `TEST_WIDE(2);
+  `TEST_WIDE(2, _wide);
+  `TEST_WIDE(2, _1r8c_wide);
 
   // TEST 3
   for (i = 0; i < 64; i = i + 1) begin
@@ -218,7 +232,8 @@ initial begin
   b[1] = -7;
   b[9] = 2;
   `TEST(3);
-  `TEST_WIDE(3);
+  `TEST_WIDE(3, _wide);
+  `TEST_WIDE(3, _1r8c_wide);
   
   // TEST 4
   for (i = 0; i < 64; i = i + 1) begin
@@ -231,12 +246,14 @@ initial begin
   b[8] = -2;
   b[16] = -2;
   `TEST(4);
-  `TEST_WIDE(4);
+  `TEST_WIDE(4, _wide);
+  `TEST_WIDE(4, _1r8c_wide);
 
   // TEST 5
   `ARRAY_TO_BITVECTOR(b) = `IN5;
   `TEST(5);
-  `TEST_WIDE(5);
+  `TEST_WIDE(5, _wide);
+  `TEST_WIDE(5, _1r8c_wide);
 
   $display("[SUCCESS] Tests passed!");
 end
