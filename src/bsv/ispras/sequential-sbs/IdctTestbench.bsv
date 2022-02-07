@@ -91,6 +91,14 @@ function OutputType idct2_test_want(Integer x);
           || x == 14 || x == 18 || x == 21) ? -21 : -20);
 endfunction
 
+function InputType idct4_test_init(Integer x);
+  return fromInteger(x);
+endfunction
+
+function InputType idct5_test_init(Integer x);
+  return fromInteger(-x);
+endfunction
+
 (* synthesize *)
 module mkIdctTestbench(Empty);
 
@@ -290,7 +298,7 @@ module mkIdctTestbench(Empty);
 
     if (got == want) begin
       $display("idct3_test: OK");
-      $finish(0);
+      testNum <= testNum + 1;
     end
     else begin
       $display("idct3_test: FAIL");
@@ -300,6 +308,181 @@ module mkIdctTestbench(Empty);
     end
   endrule
 
+  rule idct4_test_start (testNum == 4);
+
+    InDataType in = genWith(idct4_test_init);
+    $dumpvars();
+    idct.start(in);
+  endrule
+
+  rule idct4_test_end (testNum == 4);
+    OutDataType got <- idct.result();
+
+    OutDataType want = newVector;
+    want[0] = 9'had;
+    want[1] = 9'h1c1;
+    want[2] = 9'h2a;
+    want[3] = 9'h1ed;
+    want[4] = 9'h16;
+    want[5] = 9'h1fb;
+    want[6] = 9'hc;
+    want[7] = 9'h4;
+    want[8] = 9'h150;
+    want[9] = 9'h34;
+    want[10] = 9'h1d9;
+    want[11] = 9'hf;
+    want[12] = 9'h1eb;
+    want[13] = 9'h3;
+    want[14] = 9'h1f4;
+    want[15] = 9'h1fb;
+    want[16] = 9'h47;
+    want[17] = 9'h1e9;
+    want[18] = 9'h10;
+    want[19] = 9'h1f9;
+    want[20] = 9'h9;
+    want[21] = 9'h1ff;
+    want[22] = 9'h5;
+    want[23] = 9'h2;
+    want[24] = 9'h1c4;
+    want[25] = 9'h11;
+    want[26] = 9'h1f3;
+    want[27] = 9'h5;
+    want[28] = 9'h1f9;
+    want[29] = 9'h1;
+    want[30] = 9'h1fc;
+    want[31] = 9'h1fe;
+    want[32] = 9'h21;
+    want[33] = 9'h1f5;
+    want[34] = 9'h8;
+    want[35] = 9'h1fd;
+    want[36] = 9'h4;
+    want[37] = 9'h1ff;
+    want[38] = 9'h2;
+    want[39] = 9'h1;
+    want[40] = 9'h1e6;
+    want[41] = 9'h7;
+    want[42] = 9'h1fa;
+    want[43] = 9'h2;
+    want[44] = 9'h1fd;
+    want[45] = 9'h0;
+    want[46] = 9'h1fe;
+    want[47] = 9'h1ff;
+    want[48] = 9'hb;
+    want[49] = 9'h1fc;
+    want[50] = 9'h3;
+    want[51] = 9'h1ff;
+    want[52] = 9'h1;
+    want[53] = 9'h0;
+    want[54] = 9'h1;
+    want[55] = 9'h0;
+    want[56] = 9'h1fa;
+    want[57] = 9'h1;
+    want[58] = 9'h1ff;
+    want[59] = 9'h0;
+    want[60] = 9'h1ff;
+    want[61] = 9'h0;
+    want[62] = 9'h0;
+    want[63] = 9'h0;
+
+    if (got == want) begin
+      $display("idct4_test: OK");
+      testNum <= testNum + 1;
+    end
+    else begin
+      $display("idct4_test: FAIL");
+      printVector("want=", want);
+      printVector("got=", got);
+      $finish(1);
+    end
+  endrule
+
+  rule idct5_test_start (testNum == 5);
+
+    InDataType in = genWith(idct5_test_init);
+    $dumpvars();
+    idct.start(in);
+  endrule
+
+  rule idct5_test_end (testNum == 5);
+    OutDataType got <- idct.result();
+
+    OutDataType want = newVector;
+    want[0] = 9'h153;
+    want[1] = 9'h3f;
+    want[2] = 9'h1d6;
+    want[3] = 9'h13;
+    want[4] = 9'h1ea;
+    want[5] = 9'h5;
+    want[6] = 9'h1f4;
+    want[7] = 9'h1fc;
+    want[8] = 9'hb0;
+    want[9] = 9'h1cc;
+    want[10] = 9'h27;
+    want[11] = 9'h1f1;
+    want[12] = 9'h15;
+    want[13] = 9'h1fd;
+    want[14] = 9'hc;
+    want[15] = 9'h5;
+    want[16] = 9'h1b9;
+    want[17] = 9'h17;
+    want[18] = 9'h1f0;
+    want[19] = 9'h7;
+    want[20] = 9'h1f7;
+    want[21] = 9'h1;
+    want[22] = 9'h1fb;
+    want[23] = 9'h1fe;
+    want[24] = 9'h3c;
+    want[25] = 9'h1ef;
+    want[26] = 9'hd;
+    want[27] = 9'h1fb;
+    want[28] = 9'h7;
+    want[29] = 9'h1ff;
+    want[30] = 9'h4;
+    want[31] = 9'h2;
+    want[32] = 9'h1df;
+    want[33] = 9'hb;
+    want[34] = 9'h1f8;
+    want[35] = 9'h3;
+    want[36] = 9'h1fc;
+    want[37] = 9'h1;
+    want[38] = 9'h1fe;
+    want[39] = 9'h1ff;
+    want[40] = 9'h1a;
+    want[41] = 9'h1f9;
+    want[42] = 9'h6;
+    want[43] = 9'h1fe;
+    want[44] = 9'h3;
+    want[45] = 9'h0;
+    want[46] = 9'h2;
+    want[47] = 9'h1;
+    want[48] = 9'h1f5;
+    want[49] = 9'h4;
+    want[50] = 9'h1fd;
+    want[51] = 9'h1;
+    want[52] = 9'h1ff;
+    want[53] = 9'h0;
+    want[54] = 9'h1ff;
+    want[55] = 9'h0;
+    want[56] = 9'h6;
+    want[57] = 9'h1ff;
+    want[58] = 9'h1;
+    want[59] = 9'h0;
+    want[60] = 9'h1;
+    want[61] = 9'h0;
+    want[62] = 9'h0;
+    want[63] = 9'h0;
+
+    if (got == want) begin
+      $display("idct5_test: OK");
+      $finish(0);
+    end
+    else begin
+      $display("idct5_test: FAIL");
+      printVector("want=", want);
+      printVector("got=", got);
+      $finish(1);
+    end
+  endrule
 endmodule: mkIdctTestbench
 
 endpackage // IdctTestbench
