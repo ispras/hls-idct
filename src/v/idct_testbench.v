@@ -2,6 +2,7 @@
 `include "idct.v"
 `include "idct_wide.v"
 `include "idct_wide_1r8c.v"
+`include "idct_wide_1r1c.v"
 
 // Reference values for tests
 `define REF0 {9'h0,   9'h0,   9'h0,   9'h1,   9'h0,   9'h1,   9'h1ff, 9'h6,\
@@ -171,6 +172,13 @@ wire signed [`WOUT*8-1:0] master_tdata_1r8c_wide;
 wire master_tvalid_1r8c_wide;
 reg master_tready_1r8c_wide;
 
+reg signed [`WIN*8-1:0] slave_tdata_1r1c_wide;
+reg slave_tvalid_1r1c_wide;
+wire slave_tready_1r1c_wide;
+wire signed [`WOUT*8-1:0] master_tdata_1r1c_wide;
+wire master_tvalid_1r1c_wide;
+reg master_tready_1r1c_wide;
+
 axi_stream_wrappered_idct idct(master_tdata, master_tvalid, master_tready,
                                slave_tdata, slave_tvalid, slave_tready, clock, reset);
 
@@ -179,6 +187,9 @@ wide_axi_stream_wrappered_idct idct_wide(master_tdata_wide, master_tvalid_wide, 
 
 wide_axi_stream_wrappered_1r8c_idct idct_1r8c_wide(master_tdata_1r8c_wide, master_tvalid_1r8c_wide, master_tready_1r8c_wide,
                                                    slave_tdata_1r8c_wide, slave_tvalid_1r8c_wide, slave_tready_1r8c_wide, clock, reset);
+
+wide_axi_stream_wrappered_1r1c_idct idct_1r1c_wide(master_tdata_1r1c_wide, master_tvalid_1r1c_wide, master_tready_1r1c_wide,
+                                                   slave_tdata_1r1c_wide, slave_tvalid_1r1c_wide, slave_tready_1r1c_wide, clock, reset);
 
 initial begin
   $dumpfile("test.vcd");
@@ -204,6 +215,7 @@ initial begin
   `TEST(0);
   `TEST_WIDE(0, _wide);
   `TEST_WIDE(0, _1r8c_wide);
+  `TEST_WIDE(0, _1r1c_wide);
 
   // TEST 1
   for (i = 0; i < 64; i = i + 1) begin
@@ -212,6 +224,7 @@ initial begin
   `TEST(1);
   `TEST_WIDE(1, _wide);
   `TEST_WIDE(1, _1r8c_wide);
+  `TEST_WIDE(1, _1r1c_wide);
 
   // TEST 2
   for (i = 0; i < 64; i = i + 1) begin
@@ -223,6 +236,7 @@ initial begin
   `TEST(2);
   `TEST_WIDE(2, _wide);
   `TEST_WIDE(2, _1r8c_wide);
+  `TEST_WIDE(2, _1r1c_wide);
 
   // TEST 3
   for (i = 0; i < 64; i = i + 1) begin
@@ -234,6 +248,7 @@ initial begin
   `TEST(3);
   `TEST_WIDE(3, _wide);
   `TEST_WIDE(3, _1r8c_wide);
+  `TEST_WIDE(3, _1r1c_wide);
   
   // TEST 4
   for (i = 0; i < 64; i = i + 1) begin
@@ -248,12 +263,14 @@ initial begin
   `TEST(4);
   `TEST_WIDE(4, _wide);
   `TEST_WIDE(4, _1r8c_wide);
+  `TEST_WIDE(4, _1r1c_wide);
 
   // TEST 5
   `ARRAY_TO_BITVECTOR(b) = `IN5;
   `TEST(5);
   `TEST_WIDE(5, _wide);
   `TEST_WIDE(5, _1r8c_wide);
+  `TEST_WIDE(5, _1r1c_wide);
 
   $display("[SUCCESS] Tests passed!");
 end
