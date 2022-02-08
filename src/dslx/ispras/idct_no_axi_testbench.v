@@ -80,6 +80,7 @@
     $display("[FAIL] test``suffix #number:"); \
     $display("expected value is 0x%x\nreceived value is 0x%x", \
              `REF``number, `ARRAY_TO_BITVECTOR(out)); \
+    $finish; \
   end else begin \
     $display("[OK] test``suffix #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out)); \
   end
@@ -100,9 +101,8 @@ wire signed [`WOUT*8-1:0] master_tdata_wide;
 wire master_tvalid_wide;
 reg master_tready_wide;
 
-//wide_axi_stream_wrappered_idct idct_wide(master_tdata_wide, master_tvalid_wide, master_tready_wide,
-//                                         slave_tdata_wide, slave_tvalid_wide, slave_tready_wide, clock, reset);
 __idct__idct idct(clock, `ARRAY_TO_BITVECTOR(b), `ARRAY_TO_BITVECTOR(out));
+
 initial begin
   $dumpfile("test.vcd");
   $dumpvars(6, testbench);
@@ -166,7 +166,6 @@ initial begin
   `ARRAY_TO_BITVECTOR(b) = `IN5;
   `TEST_WIDE(5, _wide);
 
-  //$display("[SUCCESS] Tests passed!");
-  $finish;
+  $display("[SUCCESS] Tests passed!");
 end
 endmodule // top
