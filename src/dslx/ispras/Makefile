@@ -33,6 +33,15 @@ opt: $(TARGET_OPT_IR)
 .PHONY: sv
 sv: $(TARGET_SV)
 
+.PHONY: testv
+testv: $(TEST_V)
+
+.PHONY: testx
+testx: $(TEST_X)
+
+.PHONY: testsv
+testsv: $(TEST_SV)
+
 $(TARGET_SV): $(TARGET_OPT_IR)
 	$(XLS_PATH)/bazel-bin/xls/tools/codegen_main $< --pipeline_stages=$(stages) --delay_model=unit > $@
 
@@ -45,7 +54,7 @@ $(TARGET_OPT_IR):$(TARGET_IR)
 $(TARGET_IR): $(SOURCE)
 	cd $(XLS_PATH); bazel-bin/xls/dslx/ir_converter_main $< > $@
 
-$(TESTV_VVP): $(TARGET_V)
+$(TESTV_VVP): $(TEST_BENCH)
 	$(ICARUS_HOME)/bin/iverilog $< -o $@
 
 $(TESTSV_VVP): $(TARGET_SV)
