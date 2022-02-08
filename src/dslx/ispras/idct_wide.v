@@ -62,23 +62,17 @@ always @(posedge clock) begin
         if (~start_out) begin
           sample_out <= 1;
           in_counter <= 0;
-        end else begin
-          ready <= 0;
-        end
+        end else ready <= 0;
       end
       else begin
         in_counter <= in_counter + 1;
-        if (in_counter < 8) begin
-          `ROW_OF_ARRAY(in_buff, in_counter*8) <= slave_tdata;
-        end
+        if (in_counter < 8) `ROW_OF_ARRAY(in_buff, in_counter*8) <= slave_tdata;
       end
     end
     if (start_out) begin
       if (master_tready) begin
         out_counter <= out_counter + 1;
-        if (out_counter == 7) begin
-          start_out <= 0;
-        end
+        if (out_counter == 7) start_out <= 0;
       end
     end else begin
       if (~ready) begin
