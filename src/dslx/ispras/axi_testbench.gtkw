@@ -1,0 +1,57 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Tue Feb  8 11:21:48 2022
+[*]
+[dumpfile] "/home/ssedai/projects/hls-idct/src/dslx/ispras/test.vcd"
+[dumpfile_mtime] "Tue Feb  8 11:16:07 2022"
+[dumpfile_size] 410343
+[savefile] "/home/ssedai/projects/hls-idct/src/dslx/ispras/axi_testbench.gtkw"
+[timestart] 0
+[size] 1920 1135
+[pos] -1 -1
+*-5.000000 101 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 270
+[signals_width] 214
+[sst_expanded] 1
+[sst_vpaned_height] 328
+@28
+testbench.clock
+@420
+testbench.i
+@28
+testbench.idct_wide.clock
+testbench.idct_wide.idct.clk
+@22
+testbench.idct_wide.idct.f[767:0]
+testbench.idct_wide.idct.out[575:0]
+testbench.idct_wide.in_counter[3:0]
+testbench.idct_wide.master_tdata[71:0]
+@28
+testbench.idct_wide.master_tready
+testbench.idct_wide.master_tvalid
+@22
+testbench.idct_wide.out[575:0]
+@28
+testbench.idct_wide.out_counter[2:0]
+testbench.idct_wide.ready
+testbench.idct_wide.reset_n
+testbench.idct_wide.sample_out
+@22
+testbench.idct_wide.slave_tdata[95:0]
+@28
+testbench.idct_wide.slave_tready
+testbench.idct_wide.slave_tvalid
+testbench.idct_wide.start_out
+@22
+testbench.master_tdata_wide[71:0]
+@28
+testbench.master_tready_wide
+testbench.master_tvalid_wide
+testbench.reset
+@22
+testbench.slave_tdata_wide[95:0]
+@28
+testbench.slave_tready_wide
+testbench.slave_tvalid_wide
+[pattern_trace] 1
+[pattern_trace] 0

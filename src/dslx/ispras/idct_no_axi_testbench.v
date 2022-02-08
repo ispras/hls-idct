@@ -1,5 +1,5 @@
 `include "idct_rows_and_cols_macros.v"
-`include "idct_wide.v"
+`include "idct_s1.v"
 
 // Reference values for tests
 `define REF0 {9'h0,   9'h0,   9'h0,   9'h1,   9'h0,   9'h1,   9'h1ff, 9'h6,\
@@ -68,46 +68,27 @@
 // Test check
 `define TEST_WIDE(number, suffix) \
   clock <= 1; \
-  for (i = 0; i < 8; i = i + 1) begin \
-    slave_tdata``suffix <= `ROW_OF_ARRAY(b, i*8); \
-    slave_tvalid``suffix <= 1; \
-    #5; \
-    clock <= 0; \
-    #5; \
-    clock <= 1; \
-  end \
-  slave_tvalid``suffix <= 0; \
   #5; \
   clock <= 0; \
-  master_tready``suffix <= 1; \
   #5; \
   clock <= 1; \
-  for (i = 0; i < 8; i = i + 1) begin \
-    while (~master_tvalid``suffix) begin \
-      #5; clock <= 0; #5; clock <= 1; \
-    end \
-    `ROW_OF_ARRAY(out_reg, i*8) <= master_tdata``suffix; \
-    #5; \
-    clock <= 0; \
-    #5; \
-    clock <= 1; \
-  end \
-  master_tready``suffix <= 0; \
-  if (`ARRAY_TO_BITVECTOR(out_reg) != `REF``number) begin \
+  #5; \
+  clock <= 0; \
+  #5; \
+  clock <= 1; \
+  if (`ARRAY_TO_BITVECTOR(out) != `REF``number) begin \
     $display("[FAIL] test``suffix #number:"); \
     $display("expected value is 0x%x\nreceived value is 0x%x", \
-             `REF``number, `ARRAY_TO_BITVECTOR(out_reg)); \
-    $finish; \
+             `REF``number, `ARRAY_TO_BITVECTOR(out)); \
   end else begin \
-    $display("[OK] test``suffix #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out_reg)); \
+    $display("[OK] test``suffix #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out)); \
   end
-
 
 // The test itself
 module testbench ();
 integer i;
 reg signed [`WIN-1:0] b [63:0];
-reg [`WOUT-1:0] out_reg [63:0];
+wire [`WOUT-1:0] out [63:0];
 
 reg clock;
 reg reset;
@@ -119,9 +100,9 @@ wire signed [`WOUT*8-1:0] master_tdata_wide;
 wire master_tvalid_wide;
 reg master_tready_wide;
 
-wide_axi_stream_wrappered_idct idct_wide(master_tdata_wide, master_tvalid_wide, master_tready_wide,
-                                         slave_tdata_wide, slave_tvalid_wide, slave_tready_wide, clock, reset);
-
+//wide_axi_stream_wrappered_idct idct_wide(master_tdata_wide, master_tvalid_wide, master_tready_wide,
+//                                         slave_tdata_wide, slave_tvalid_wide, slave_tready_wide, clock, reset);
+__idct__idct idct(clock, `ARRAY_TO_BITVECTOR(b), `ARRAY_TO_BITVECTOR(out));
 initial begin
   $dumpfile("test.vcd");
   $dumpvars(6, testbench);
@@ -185,6 +166,7 @@ initial begin
   `ARRAY_TO_BITVECTOR(b) = `IN5;
   `TEST_WIDE(5, _wide);
 
-  $display("[SUCCESS] Tests passed!");
+  //$display("[SUCCESS] Tests passed!");
+  $finish;
 end
 endmodule // top

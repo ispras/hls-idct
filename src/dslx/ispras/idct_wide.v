@@ -33,7 +33,7 @@ module wide_axi_stream_wrappered_idct(output [`WOUT*8-1:0] master_tdata, output 
                                       input clock, input reset_n);
 reg [`WIN-1:0] in_buff [63:0];
 reg [`WOUT-1:0] out_buff [63:0];
-reg [2:0] in_counter;
+reg [3:0] in_counter;
 reg [2:0] out_counter;
 reg sample_out;
 reg start_out;
@@ -57,14 +57,19 @@ always @(posedge clock) begin
       sample_out <= 0;
       start_out <= 1;
     end
-    if (slave_tvalid && ready) begin
-      `ROW_OF_ARRAY(in_buff, in_counter*8) <= slave_tdata;
-      in_counter <= in_counter + 1;
-      if (in_counter == 7) begin
+    if (slave_tvalid && ready || (in_counter == 8) || (in_counter == 9)) begin
+      if (in_counter == 9) begin
         if (~start_out) begin
           sample_out <= 1;
+          in_counter <= 0;
         end else begin
           ready <= 0;
+        end
+      end
+      else begin
+        in_counter <= in_counter + 1;
+        if (in_counter < 8) begin
+          `ROW_OF_ARRAY(in_buff, in_counter*8) <= slave_tdata;
         end
       end
     end
