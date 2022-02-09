@@ -58,74 +58,71 @@ module idctrow(input [`WIN-1:0] i0, input [`WIN-1:0] i1, input [`WIN-1:0] i2, in
                output [`WIM-1:0] b0, output [`WIM-1:0] b1, output [`WIM-1:0] b2, output [`WIM-1:0] b3,
                output [`WIM-1:0] b4, output [`WIM-1:0] b5, output [`WIM-1:0] b6, output [`WIM-1:0] b7);
 
-wire signed [`WIN*2-4:0] x0 [7:0];
-wire signed [`WIN*2-4:0] x1 [7:4];
-wire signed [`WIN*2-4:0] x2 [7:0];
-wire signed [`WIN*2-4:0] x3 [7:0];
+wire signed [`WIN*2-4:0] x [7:0][3:0];
 
 // zeroth stage
-assign x0[0] = ($signed(i0) << 11) + 128;
-assign x0[1] = $signed(i4) << 11;
-assign x0[2] = $signed(i6);
-assign x0[3] = $signed(i2);
-assign x0[4] = $signed(i1);
-assign x0[5] = $signed(i7);
-assign x0[6] = $signed(i5);
-assign x0[7] = $signed(i3);
+assign x[0][0] = ($signed(i0) << 11) + 128;
+assign x[1][0] = $signed(i4) << 11;
+assign x[2][0] = $signed(i6);
+assign x[3][0] = $signed(i2);
+assign x[4][0] = $signed(i1);
+assign x[5][0] = $signed(i7);
+assign x[6][0] = $signed(i5);
+assign x[7][0] = $signed(i3);
 
-assign br = !(x0[1] | x0[2] | x0[3] | x0[4] | x0[5] | x0[6] | x0[7]);
+assign br = !(x[1][0] | x[2][0] | x[3][0] | x[4][0] | x[5][0] | x[6][0] | x[7][0]);
 
 // first stage
 wire signed [`WIN*2-4:0] tmp0;
 wire signed [`WIN*2-4:0] tmp1;
-//assign x1[0] = x0[0];
-//assign x1[1] = x0[1];
-//assign x1[2] = x0[2];
-//assign x1[3] = x0[3];
-assign tmp0    = `W7 * (x0[4] + x0[5]);
-assign x1[4] = tmp0 + (`W1 - `W7) * x0[4];
-assign x1[5] = tmp0 - (`W1 + `W7) * x0[5];
-assign tmp1    = `W3 * (x0[6] + x0[7]);
-assign x1[6] = tmp1 - (`W3 - `W5) * x0[6];
-assign x1[7] = tmp1 - (`W3 + `W5) * x0[7];
+assign x[0][1] = x[0][0];
+assign x[1][1] = x[1][0];
+assign x[2][1] = x[2][0];
+assign x[3][1] = x[3][0];
+assign tmp0    = `W7 * (x[4][0] + x[5][0]);
+assign x[4][1] = tmp0 + (`W1 - `W7) * x[4][0];
+assign x[5][1] = tmp0 - (`W1 + `W7) * x[5][0];
+assign tmp1    = `W3 * (x[6][0] + x[7][0]);
+assign x[6][1] = tmp1 - (`W3 - `W5) * x[6][0];
+assign x[7][1] = tmp1 - (`W3 + `W5) * x[7][0];
 
 // second stage
 wire signed [`WIN*2-4:0] tmp2;
 wire signed [`WIN*2-4:0] tmp3;
-assign x2[0] = x0[0] - x0[1];
-assign x2[1] = x1[4] + x1[6];
-assign tmp2 = `W6 * (x0[3] + x0[2]);
-assign x2[2] = tmp2 - (`W2 + `W6) * x0[2];
-assign x2[3] = tmp2 + (`W2 - `W6) * x0[3];
-assign x2[4] = x1[4] - x1[6];
-assign x2[5] = x1[5] - x1[7];
-assign x2[6] = x1[5] + x1[7];
-assign x2[7] = x1[7];
-assign tmp3 = x0[0] + x0[1];
+assign x[0][2] = x[0][1] - x[1][1];
+assign x[1][2] = x[4][1] + x[6][1];
+assign tmp2 = `W6 * (x[3][1] + x[2][1]);
+assign x[2][2] = tmp2 - (`W2 + `W6) * x[2][1];
+assign x[3][2] = tmp2 + (`W2 - `W6) * x[3][1];
+assign x[4][2] = x[4][1] - x[6][1];
+assign x[5][2] = x[5][1] - x[7][1];
+assign x[6][2] = x[5][1] + x[7][1];
+assign x[7][2] = x[7][1];
+assign tmp3 = x[0][1] + x[1][1];
 
 // third stage
 wire signed [`WIN*2-4:0] tmp4;
-assign x3[0] = x2[0] - x2[2];
-assign x3[1] = x2[1];
-assign x3[2] = (181 * (x2[4] + x2[5]) + 128) >>> 8;
-assign x3[3] = x2[0] + x2[2];
-assign x3[4] = (181 * (x2[4] - x2[5]) + 128) >>> 8;
-assign x3[5] = x2[5];
-assign x3[6] = x2[6];
-assign x3[7] = tmp3 +  x2[3];
-assign tmp4    = tmp3 - x2[3];
+assign x[0][3] = x[0][2] - x[2][2];
+assign x[1][3] = x[1][2];
+assign x[2][3] = (181 * (x[4][2] + x[5][2]) + 128) >>> 8;
+assign x[3][3] = x[0][2] + x[2][2];
+assign x[4][3] = (181 * (x[4][2] - x[5][2]) + 128) >>> 8;
+assign x[5][3] = x[5][2];
+assign x[6][3] = x[6][2];
+assign x[7][3] = tmp3 + x[3][2];
+assign tmp4    = tmp3 - x[3][2];
 
 // fourth stage
 wire signed [`WIM-1:0] tmp5;
 assign tmp5 = $signed(i0) << 3;
-assign b0 = br ? tmp5 : (x3[7] + x3[1]) >>> 8;
-assign b1 = br ? tmp5 : (x3[3] + x3[2]) >>> 8;
-assign b2 = br ? tmp5 : (x3[0] + x3[4]) >>> 8;
-assign b3 = br ? tmp5 : ( tmp4 + x3[6]) >>> 8;
-assign b4 = br ? tmp5 : ( tmp4 - x3[6]) >>> 8;
-assign b5 = br ? tmp5 : (x3[0] - x3[4]) >>> 8;
-assign b6 = br ? tmp5 : (x3[3] - x3[2]) >>> 8;
-assign b7 = br ? tmp5 : (x3[7] - x3[1]) >>> 8;
+assign b0 = br ? tmp5 : (x[7][3] + x[1][3]) >>> 8;
+assign b1 = br ? tmp5 : (x[3][3] + x[2][3]) >>> 8;
+assign b2 = br ? tmp5 : (x[0][3] + x[4][3]) >>> 8;
+assign b3 = br ? tmp5 : (   tmp4 + x[6][3]) >>> 8;
+assign b4 = br ? tmp5 : (   tmp4 - x[6][3]) >>> 8;
+assign b5 = br ? tmp5 : (x[0][3] - x[4][3]) >>> 8;
+assign b6 = br ? tmp5 : (x[3][3] - x[2][3]) >>> 8;
+assign b7 = br ? tmp5 : (x[7][3] - x[1][3]) >>> 8;
 
 endmodule // idctrow
 
@@ -134,73 +131,70 @@ module idctcol(input [`WIM-1:0] i0, input [`WIM-1:0] i1, input [`WIM-1:0] i2, in
                output [`WOUT-1:0] b0, output [`WOUT-1:0] b1, output [`WOUT-1:0] b2, output [`WOUT-1:0] b3,
                output [`WOUT-1:0] b4, output [`WOUT-1:0] b5, output [`WOUT-1:0] b6, output [`WOUT-1:0] b7);
 
-wire signed [`WIM*2-4:0] x0 [7:0];
-wire signed [`WIM*2-4:0] x1 [7:4];
-wire signed [`WIM*2-4:0] x2 [7:0];
-wire signed [`WIM*2-4:0] x3 [7:0];
+wire signed [`WIM*2-4:0] x [7:0][3:0];
 
 // zeroth stage
-assign x0[0] = ($signed(i0) << 8) + 8192;
-assign x0[1] = $signed(i4) << 8;
-assign x0[2] = $signed(i6);
-assign x0[3] = $signed(i2);
-assign x0[4] = $signed(i1);
-assign x0[5] = $signed(i7);
-assign x0[6] = $signed(i5);
-assign x0[7] = $signed(i3);
+assign x[0][0] = ($signed(i0) << 8) + 8192;
+assign x[1][0] = $signed(i4) << 8;
+assign x[2][0] = $signed(i6);
+assign x[3][0] = $signed(i2);
+assign x[4][0] = $signed(i1);
+assign x[5][0] = $signed(i7);
+assign x[6][0] = $signed(i5);
+assign x[7][0] = $signed(i3);
 
-assign br = !(x0[1] | x0[2] | x0[3] | x0[4] | x0[5] | x0[6] | x0[7]);
+assign br = !(x[1][0] | x[2][0] | x[3][0] | x[4][0] | x[5][0] | x[6][0] | x[7][0]);
 
 // first stage
 wire signed [`WIM*2-2:0] tmp0;
 wire signed [`WIM*2-2:0] tmp1;
-//assign x1[0] = x0[0];
-//assign x1[1] = x0[1];
-//assign x1[2] = x0[2];
-//assign x1[3] = x0[3];
-assign tmp0    = `W7 * (x0[4] + x0[5]) + 4;
-assign x1[4] = (tmp0 + (`W1 - `W7) * x0[4]) >>> 3;
-assign x1[5] = (tmp0 - (`W1 + `W7) * x0[5]) >>> 3;
-assign tmp1    = `W3 * (x0[6] + x0[7]) + 4;
-assign x1[6] = (tmp1 - (`W3 - `W5) * x0[6]) >>> 3;
-assign x1[7] = (tmp1 - (`W3 + `W5) * x0[7]) >>> 3;
+assign x[0][1] = x[0][0];
+assign x[1][1] = x[1][0];
+assign x[2][1] = x[2][0];
+assign x[3][1] = x[3][0];
+assign tmp0    = `W7 * (x[4][0] + x[5][0]) + 4;
+assign x[4][1] = (tmp0 + (`W1 - `W7) * x[4][0]) >>> 3;
+assign x[5][1] = (tmp0 - (`W1 + `W7) * x[5][0]) >>> 3;
+assign tmp1    = `W3 * (x[6][0] + x[7][0]) + 4;
+assign x[6][1] = (tmp1 - (`W3 - `W5) * x[6][0]) >>> 3;
+assign x[7][1] = (tmp1 - (`W3 + `W5) * x[7][0]) >>> 3;
 
 // second stage
 wire signed [`WIM*2-3:0] tmp2;
 wire signed [`WIM*2-3:0] tmp3;
-assign x2[0] = x0[0] - x0[1];
-assign x2[1] = x1[4] + x1[6];
-assign tmp2 = `W6 * (x0[3] + x0[2]) + 4;
-assign x2[2] = (tmp2 - (`W2 + `W6) * x0[2]) >>> 3;
-assign x2[3] = (tmp2 + (`W2 - `W6) * x0[3]) >>> 3;
-assign x2[4] = x1[4] - x1[6];
-assign x2[5] = x1[5] - x1[7];
-assign x2[6] = x1[5] + x1[7];
-assign x2[7] = x1[7];
-assign tmp3 = x0[0] + x0[1];
+assign x[0][2] = x[0][1] - x[1][1];
+assign x[1][2] = x[4][1] + x[6][1];
+assign tmp2 = `W6 * (x[3][1] + x[2][1]) + 4;
+assign x[2][2] = (tmp2 - (`W2 + `W6) * x[2][1]) >>> 3;
+assign x[3][2] = (tmp2 + (`W2 - `W6) * x[3][1]) >>> 3;
+assign x[4][2] = x[4][1] - x[6][1];
+assign x[5][2] = x[5][1] - x[7][1];
+assign x[6][2] = x[5][1] + x[7][1];
+assign x[7][2] = x[7][1];
+assign tmp3 = x[0][1] + x[1][1];
 
 // third stage
 wire signed [`WIM*2-4:0] tmp4;
-assign x3[0] = x2[0] - x2[2];
-assign x3[1] = x2[1];
-assign x3[2] = (181 * (x2[4] + x2[5]) + 128) >>> 8;
-assign x3[3] = x2[0] + x2[2];
-assign x3[4] = (181 * (x2[4] - x2[5]) + 128) >>> 8;
-assign x3[5] = x2[5];
-assign x3[6] = x2[6];
-assign x3[7] = tmp3 + x2[3];
-assign tmp4  = tmp3 - x2[3];
+assign x[0][3] = x[0][2] - x[2][2];
+assign x[1][3] = x[1][2];
+assign x[2][3] = (181 * (x[4][2] + x[5][2]) + 128) >>> 8;
+assign x[3][3] = x[0][2] + x[2][2];
+assign x[4][3] = (181 * (x[4][2] - x[5][2]) + 128) >>> 8;
+assign x[5][3] = x[5][2];
+assign x[6][3] = x[6][2];
+assign x[7][3] = tmp3 + x[3][2];
+assign tmp4  = tmp3 - x[3][2];
 
 // fourth stage
 wire signed [`WOUT-1:0] tmp5 = iclp13(($signed(i0) + 32) >>> 6);
-assign b0 = br ? tmp5 : iclp13((x3[7] + x3[1]) >>> 14);
-assign b1 = br ? tmp5 : iclp13((x3[3] + x3[2]) >>> 14);
-assign b2 = br ? tmp5 : iclp13((x3[0] + x3[4]) >>> 14);
-assign b3 = br ? tmp5 : iclp13(( tmp4 + x3[6]) >>> 14);
-assign b4 = br ? tmp5 : iclp13(( tmp4 - x3[6]) >>> 14);
-assign b5 = br ? tmp5 : iclp13((x3[0] - x3[4]) >>> 14);
-assign b6 = br ? tmp5 : iclp13((x3[3] - x3[2]) >>> 14);
-assign b7 = br ? tmp5 : iclp13((x3[7] - x3[1]) >>> 14);
+assign b0 = br ? tmp5 : iclp13((x[7][3] + x[1][3]) >>> 14);
+assign b1 = br ? tmp5 : iclp13((x[3][3] + x[2][3]) >>> 14);
+assign b2 = br ? tmp5 : iclp13((x[0][3] + x[4][3]) >>> 14);
+assign b3 = br ? tmp5 : iclp13((   tmp4 + x[6][3]) >>> 14);
+assign b4 = br ? tmp5 : iclp13((   tmp4 - x[6][3]) >>> 14);
+assign b5 = br ? tmp5 : iclp13((x[0][3] - x[4][3]) >>> 14);
+assign b6 = br ? tmp5 : iclp13((x[3][3] - x[2][3]) >>> 14);
+assign b7 = br ? tmp5 : iclp13((x[7][3] - x[1][3]) >>> 14);
 
 function [`WOUT-1:0] iclp13;
   input [12:0] in;
