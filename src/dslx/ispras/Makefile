@@ -74,4 +74,4 @@ $(TEST_SV): $(TESTSV_VVP)
 	$(ICARUS_HOME)/bin/vvp $<
 
 clean:
-	rm -rf $(TARGET_IR) $(TARGET_OPT_IR) $(PWD)/$(SOURCE_FILE:.x=)_s*.*
+	rm -rf $(TARGET_IR) $(TARGET_OPT_IR) $(PWD)/$(SOURCE_FILE:.x=).v
