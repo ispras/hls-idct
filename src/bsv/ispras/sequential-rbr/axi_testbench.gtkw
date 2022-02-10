@@ -1,0 +1,59 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Thu Feb 10 15:24:56 2022
+[*]
+[dumpfile] "/home/ssedai/projects/hls-idct/src/bsv/ispras/sequential-rbr/dump.vcd"
+[dumpfile_mtime] "Thu Feb 10 15:18:47 2022"
+[dumpfile_size] 42879
+[savefile] "/home/ssedai/projects/hls-idct/src/bsv/ispras/sequential-rbr/axi_testbench.gtkw"
+[timestart] 0
+[size] 1920 1135
+[pos] -1 -1
+*-6.235217 140 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] main.
+[sst_width] 491
+[signals_width] 391
+[sst_expanded] 1
+[sst_vpaned_height] 328
+@28
+main.top.idct.CLK
+main.top.RST_N
+main.top.idct.WILL_FIRE_sendRow
+main.top.idct.EN_sendRow
+main.top.idct.RDY_sendRow
+@22
+main.top.count[3:0]
+main.top.idct.sendRow_x[95:0]
+@28
+main.top.idct.RDY_recvRow
+main.top.idct.EN_recvRow
+main.top.idct.WILL_FIRE_recvRow
+@22
+main.top.idct.recvRow[71:0]
+@29
+main.top.CAN_FIRE_RL_prepare_data
+@28
+main.top.WILL_FIRE_RL_prepare_data
+main.top.CAN_FIRE_RL_ready_to_recv
+main.top.WILL_FIRE_RL_ready_to_recv
+main.top.CAN_FIRE_RL_recv_row
+main.top.WILL_FIRE_RL_recv_row
+main.top.CAN_FIRE_RL_send_row
+main.top.WILL_FIRE_RL_send_row
+main.top.CAN_FIRE_RL_test_end
+main.top.WILL_FIRE_RL_test_end
+main.top.idct.CAN_FIRE_RL_idct_process_columns
+main.top.idct.CAN_FIRE_RL_idct_process_rows
+main.top.idct.CAN_FIRE_RL_idct_stop_processing
+main.top.idct.CAN_FIRE_RL_run
+main.top.idct.CAN_FIRE_RL_write_result
+main.top.idct.CAN_FIRE_recvRow
+main.top.idct.CAN_FIRE_sendRow
+main.top.idct.WILL_FIRE_RL_idct_process_columns
+main.top.idct.WILL_FIRE_RL_idct_process_rows
+main.top.idct.WILL_FIRE_RL_idct_stop_processing
+main.top.idct.WILL_FIRE_RL_run
+main.top.idct.WILL_FIRE_RL_write_result
+main.top.idct.state[1:0]
+[pattern_trace] 1
+[pattern_trace] 0

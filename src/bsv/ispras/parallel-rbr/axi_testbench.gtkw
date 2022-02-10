@@ -1,0 +1,40 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Thu Feb 10 16:01:27 2022
+[*]
+[dumpfile] "/home/ssedai/projects/hls-idct/src/bsv/ispras/parallel-rbr/dump.vcd"
+[dumpfile_mtime] "Thu Feb 10 15:57:19 2022"
+[dumpfile_size] 22962
+[savefile] "/home/ssedai/projects/hls-idct/src/bsv/ispras/parallel-rbr/axi_testbench.gtkw"
+[timestart] 0
+[size] 1920 1135
+[pos] -1 -1
+*-5.954196 100 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] main.
+[sst_width] 270
+[signals_width] 206
+[sst_expanded] 1
+[sst_vpaned_height] 328
+@28
+main.top.idct.CLK
+main.top.RST_N
+@22
+main.top.idct.cnt[3:0]
+main.top.idct.send_x[95:0]
+main.top.idct.recv[71:0]
+@28
+main.top.idct.CAN_FIRE_send
+main.top.idct.WILL_FIRE_send
+main.top.idct.EN_send
+@29
+main.top.idct.RDY_send
+@28
+main.top.idct.CAN_FIRE_recv
+main.top.idct.EN_recv
+main.top.idct.RDY_recv
+main.top.idct.WILL_FIRE_recv
+main.top.idct.CAN_FIRE_RL_run
+main.top.idct.CAN_FIRE_RL_stop_recv
+main.top.idct.WILL_FIRE_RL_stop_recv
+[pattern_trace] 1
+[pattern_trace] 0

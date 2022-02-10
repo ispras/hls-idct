@@ -1,0 +1,44 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Thu Feb 10 15:56:13 2022
+[*]
+[dumpfile] "/home/ssedai/projects/hls-idct/src/bsv/ispras/parallel-sbs/dump.vcd"
+[dumpfile_mtime] "Thu Feb 10 15:40:39 2022"
+[dumpfile_size] 26808
+[savefile] "/home/ssedai/projects/hls-idct/src/bsv/ispras/parallel-sbs/axi_testbench.gtkw"
+[timestart] 0
+[size] 1920 1135
+[pos] -1 -1
+*-7.000000 20 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] main.
+[sst_width] 270
+[signals_width] 238
+[sst_expanded] 1
+[sst_vpaned_height] 328
+@28
+main.top.idct.CLK
+main.top.RST_N
+@22
+main.top.count[6:0]
+main.top.idct.send_x[11:0]
+main.top.idct.recv[8:0]
+@28
+main.top.idct.state[1:0]
+main.top.CAN_FIRE_RL_prepare_data
+@29
+main.top.CAN_FIRE_RL_ready_to_recv
+@28
+main.top.WILL_FIRE_RL_prepare_data
+main.top.WILL_FIRE_RL_ready_to_recv
+main.top.idct.CAN_FIRE_RL_run
+main.top.idct.CAN_FIRE_recv
+main.top.idct.CAN_FIRE_send
+main.top.idct.EN_recv
+main.top.idct.EN_send
+main.top.idct.RDY_recv
+main.top.idct.RDY_send
+main.top.idct.WILL_FIRE_RL_run
+main.top.idct.WILL_FIRE_recv
+main.top.idct.WILL_FIRE_send
+[pattern_trace] 1
+[pattern_trace] 0
