@@ -9,8 +9,8 @@ SOURCE_FILE     = idct.x
 SOURCE          = $(PWD)/$(SOURCE_FILE)
 TARGET_IR       = $(PWD)/$(SOURCE_FILE:.x=.ir)
 TARGET_OPT_IR   = $(PWD)/$(SOURCE_FILE:.x=.opt.ir)
-TARGET_V        = $(PWD)/$(SOURCE_FILE:.x=_s$(stages).v)
-TARGET_SV       = $(PWD)/$(SOURCE_FILE:.x=_s$(stages).sv)
+TARGET_V        = $(PWD)/$(SOURCE_FILE:.x=.v)
+TARGET_SV       = $(PWD)/$(SOURCE_FILE:.x=.sv)
 
 TESTV_VVP       = $(PWD)/$(SOURCE_FILE:.x=_s$(stages)_v.vvp)
 TESTSV_VVP      = $(PWD)/$(SOURCE_FILE:.x=_s$(stages)_sv.vvp)
@@ -18,8 +18,11 @@ TEST_BENCH_FILE = testbench.v
 TEST_BENCH      = $(PWD)/$(TEST_BENCH_FILE)
 TEST_V          = test_v
 TEST_SV         = test_sv
-
 TEST_X          = test_x
+
+CODEGEN_OPTS    = --pipeline_stages=$(stages) \
+  --delay_model=unit \
+  --generator=pipeline
 
 .PHONY: verilog
 verilog: $(TARGET_V)
@@ -43,10 +46,10 @@ testx: $(TEST_X)
 testsv: $(TEST_SV)
 
 $(TARGET_SV): $(TARGET_OPT_IR)
-	$(XLS_PATH)/bazel-bin/xls/tools/codegen_main $< --pipeline_stages=$(stages) --delay_model=unit > $@
+	$(XLS_PATH)/bazel-bin/xls/tools/codegen_main $< $(CODEGEN_OPTS) > $@
 
 $(TARGET_V): $(TARGET_OPT_IR)
-	$(XLS_PATH)/bazel-bin/xls/tools/codegen_main $< --pipeline_stages=$(stages) --delay_model=unit --use_system_verilog=false > $@
+	$(XLS_PATH)/bazel-bin/xls/tools/codegen_main $< $(CODEGEN_OPTS) --use_system_verilog=false > $@
 
 $(TARGET_OPT_IR):$(TARGET_IR)
 	$(XLS_PATH)/bazel-bin/xls/tools/opt_main $< > $@

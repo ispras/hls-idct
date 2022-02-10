@@ -25,7 +25,7 @@
  /* compliance                           sE,  2.1.94       */
  /**********************************************************/
 
-`include "idct_s1.v"
+`include "idct.v"
 `include "idct_rows_and_cols_macros.v"
 
 module wide_axi_stream_wrappered_idct(output [`WOUT*8-1:0] master_tdata, output master_tvalid, input master_tready,

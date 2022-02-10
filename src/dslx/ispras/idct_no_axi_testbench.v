@@ -1,5 +1,5 @@
 `include "idct_rows_and_cols_macros.v"
-`include "idct_s1.v"
+`include "idct.v"
 
 // Reference values for tests
 `define REF0 {9'h0,   9'h0,   9'h0,   9'h1,   9'h0,   9'h1,   9'h1ff, 9'h6,\
