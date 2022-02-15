@@ -23,7 +23,6 @@ import Idct::*;
 import Vector::*;
 
 typedef UInt#(TAdd#(TLog#(DataDim), 1)) CountType;
-typedef Vector#(DataDim, InputType) InDataRow;
 typedef Vector#(DataDim, OutputType) OutDataRow;
 
 function Integer getRowNum(CountType x);
