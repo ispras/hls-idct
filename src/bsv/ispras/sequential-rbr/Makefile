@@ -18,7 +18,8 @@ EXEFILE_VSIM ?= exe_HW_vsim
 
 BSCFLAGS = -show-schedule \
 	-no-warn-action-shadowing \
-	-show-range-conflict
+	-show-range-conflict \
+	+RTS -H512M -K512M -RTS
 
 BSC_C_FLAGS += \
 	-Xc++  -D_GLIBCXX_USE_CXX11_ABI=0 \
@@ -54,7 +55,7 @@ link:
 	bsc  -sim  -parallel-sim-link 8\
 		$(BSCDIRS_BSIM)  -p $(BSCPATH_BSIM) \
 		-e $(TOPMODULE) -o ./$(EXEFILE_BSIM) \
-		-keep-fires \
+		$(BSCFLAGS) \
 		$(BSC_C_FLAGS)
 	@echo Linking finished
 
@@ -88,7 +89,7 @@ rtl: build_v verilog
 vlink:
 	bsc -verilog  -vsim $(VSIM)  $(BSCDIRS_V) \
 		-e $(TOPMODULE) -o ./$(EXEFILE_VSIM) \
-		-keep-fires
+		$(BSCFLAGS)
 	@echo Verilog linking finished
 
 .PHONY: vsim

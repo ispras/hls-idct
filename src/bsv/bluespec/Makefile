@@ -9,12 +9,10 @@ TOPMODULE ?= mkIDCT_top
 EXEFILE_BSIM ?= exe_HW_bsim
 EXEFILE_VSIM ?= exe_HW_vsim
 
-BSCFLAGS = -keep-fires \
-	-aggressive-conditions \
-	-show-schedule \
+BSCFLAGS = -show-schedule \
 	-no-warn-action-shadowing \
-	-no-inline-rwire \
-	-show-range-conflict
+	-show-range-conflict \
+	+RTS -K512M -RTS
 
 BSC_C_FLAGS += \
 	-Xc++  -D_GLIBCXX_USE_CXX11_ABI=0 \
@@ -50,8 +48,7 @@ link:
 	bsc  -sim  -parallel-sim-link 8\
 		$(BSCDIRS_BSIM)  -p $(BSCPATH_BSIM) \
 		-e $(TOPMODULE) -o ./$(EXEFILE_BSIM) \
-		-keep-fires \
-		$(BSC_C_FLAGS)
+		$(BSCFLAGS) $(BSC_C_FLAGS)
 	@echo Linking finished
 
 .PHONY: simulate
@@ -84,7 +81,7 @@ rtl: build_v verilog
 vlink:
 	bsc -verilog  -vsim $(VSIM)  $(BSCDIRS_V) \
 		-e $(TOPMODULE) -o ./$(EXEFILE_VSIM) \
-		-keep-fires
+		$(BSCFLAGS)
 	@echo Verilog linking finished
 
 .PHONY: vsim
