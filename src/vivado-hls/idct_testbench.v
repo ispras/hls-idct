@@ -94,9 +94,9 @@
       #5; clock <= 0; #5; clock <= 1; \
     end \
     ibl_tdata <= {`REPL4(b, i*8+3, 11), b[i*8+3], `REPL4(b, i*8+2, 11), b[i*8+2], \
-                  `REPL4(b, i*8+1, 11), b[i*8+1], `REPL4(b, i+8+0, 11), b[i*8+0]}; \
+                  `REPL4(b, i*8+1, 11), b[i*8+1], `REPL4(b, i*8+0, 11), b[i*8+0]}; \
     ibh_tdata <= {`REPL4(b, i*8+7, 11), b[i*8+7], `REPL4(b, i*8+6, 11), b[i*8+6], \
-                  `REPL4(b, i+8+5, 11), b[i*8+5], `REPL4(b, i*8+4, 11), b[i*8+4]}; \
+                  `REPL4(b, i*8+5, 11), b[i*8+5], `REPL4(b, i*8+4, 11), b[i*8+4]}; \
     ibl_tvalid <= 1; \
     ibh_tvalid <= 1; \
     #5; \
@@ -129,13 +129,8 @@
     $display("[FAIL] test #number:"); \
     $display("expected value is 0x%x\nreceived value is 0x%x", \
              `REF``number, `ARRAY_TO_BITVECTOR(out_reg)); \
-    /*$finish;*/ \
-  end else begin \
-    $display("[OK] test #number: out_reg is 0x%x", `ARRAY_TO_BITVECTOR(out_reg)); \
-    $display("expected value is 0x%x\nreceived value is 0x%x", \
-             `REF``number, `ARRAY_TO_BITVECTOR(out_reg)); \
+    $finish; \
   end
-
 
 // The test itself
 module testbench ();
@@ -146,14 +141,14 @@ reg [`WOUT-1:0] out_reg [63:0];
 reg clock;
 reg reset;
 
-reg signed [63:0] ibl_tdata;
-reg signed [63:0] ibh_tdata;
+reg [63:0] ibl_tdata;
+reg [63:0] ibh_tdata;
 reg ibl_tvalid;
 reg ibh_tvalid;
 wire ibl_tready;
 wire ibh_tready;
-wire signed [63:0] obl_tdata;
-wire signed [63:0] obh_tdata;
+wire [63:0] obl_tdata;
+wire [63:0] obh_tdata;
 wire obl_tvalid;
 wire obh_tvalid;
 reg obl_tready;
