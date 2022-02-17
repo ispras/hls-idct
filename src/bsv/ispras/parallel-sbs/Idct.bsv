@@ -213,7 +213,7 @@ module mkIdct (Idct_ifc#(InDataType, OutDataType));
   function DataFrag getCol(DataType data, Integer i);
     DataFrag res = newVector;
     for (Integer j = 0; j < dataDim; j = j + 1) begin
-      res[j] = data[i + 8 * j];
+      res[j] = data[i + dataDim * j];
     end
     return res;
   endfunction
@@ -224,17 +224,17 @@ module mkIdct (Idct_ifc#(InDataType, OutDataType));
     OutDataType res = newVector;
 
     for (Integer i = 0; i < dataDim; i = i + 1) begin
-      InDataRow frag = takeAt(8 * i, data);
+      InDataRow frag = takeAt(dataDim * i, data);
       DataFrag dataFrag <- rows[i].run(frag);
       for (Integer j = 0; j < dataDim; j = j + 1) begin
-        tmp[8 * i + j] = dataFrag[j];
+        tmp[dataDim * i + j] = dataFrag[j];
       end
     end
 
     for (Integer i = 0; i < dataDim; i = i + 1) begin
       OutDataCol outFrag <- cols[i].run(getCol(tmp, i));
       for (Integer j = 0; j < dataDim; j = j + 1) begin
-        res[i + 8 * j] = outFrag[j];
+        res[i + dataDim * j] = outFrag[j];
       end
     end
     return res;

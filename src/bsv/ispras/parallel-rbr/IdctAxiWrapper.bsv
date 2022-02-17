@@ -64,7 +64,7 @@ module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
 
   method Action send(InDataRow x) if ((state == IDLE) && (cnt < rowNum));
     for (Integer i = 0; i < dim; i = i + 1) begin
-      inputs[getRowNum(cnt) * 8 + i] <= x[i];
+      inputs[getRowNum(cnt) * dim + i] <= x[i];
     end
     cnt <= cnt + 1;
   endmethod
@@ -72,7 +72,7 @@ module mkIdctAxiWrapper(IdctAxiWrapper_ifc);
   method ActionValue#(OutDataRow) recv() if ((state == DONE) && (cnt < rowNum));
     OutDataRow result = newVector;
     for(Integer i = 0; i < dim; i = i + 1) begin
-      result[i] = outputs[getRowNum(cnt) * 8 + i];
+      result[i] = outputs[getRowNum(cnt) * dim + i];
     end
     cnt <= cnt + 1;
     return result;

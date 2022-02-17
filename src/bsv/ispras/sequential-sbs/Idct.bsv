@@ -84,7 +84,7 @@ module mkIdct (Idct_iface);
   Reg#(State) state <- mkReg(IDLE);
 
   Integer dataSize = valueOf(DataSize);
-  Integer dataDim  = valueOf(DataDim);
+  Integer dim  = valueOf(DataDim);
 
   int w1 = fromInteger(valueOf(W1));
   int w2 = fromInteger(valueOf(W2));
@@ -229,8 +229,8 @@ module mkIdct (Idct_iface);
 
   rule process_rows (state == HAVE_DATA);
 
-    for (Integer i = 0; i < dataDim; i = i + 1) begin
-      idctrow(8 * i);
+    for (Integer i = 0; i < dim; i = i + 1) begin
+      idctrow(dim * i);
     end
 
     state <= ROWS_PROCESSED;
@@ -238,7 +238,7 @@ module mkIdct (Idct_iface);
 
   rule process_columns (state == ROWS_PROCESSED);
 
-    for (Integer i = 0; i < dataDim; i = i + 1) begin
+    for (Integer i = 0; i < dim; i = i + 1) begin
       idctcol(i);
     end
 

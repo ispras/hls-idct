@@ -230,7 +230,7 @@ module mkIdct (Idct_iface);
   rule process_rows (state == HAVE_DATA);
 
     for (Integer i = 0; i < dataDim; i = i + 1) begin
-      idctrow(8 * i);
+      idctrow(dataDim * i);
     end
 
     state <= ROWS_PROCESSED;
