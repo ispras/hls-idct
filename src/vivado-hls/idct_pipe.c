@@ -44,20 +44,20 @@ static short iclip(int i);
  *        c[1..7] = 128*sqrt(2)
  */
 
-static void idctrow(blk)
-short blk[8];
+static void idctrow(short b0, short b1, short b2, short b3, short b4, short b5, short b6, short b7,
+                    short *r0, short *r1, short *r2, short *r3, short *r4, short *r5, short *r6, short *r7)
 {
   int x0, x1, x2, x3, x4, x5, x6, x7, x8;
 
   /* shortcut */
-  if (!((x1 = blk[4]<<11) | (x2 = blk[6]) | (x3 = blk[2]) |
-        (x4 = blk[1]) | (x5 = blk[7]) | (x6 = blk[5]) | (x7 = blk[3])))
+  if (!((x1 = b4<<11) | (x2 = b6) | (x3 = b2) |
+        (x4 = b1) | (x5 = b7) | (x6 = b5) | (x7 = b3)))
   {
-    blk[0]=blk[1]=blk[2]=blk[3]=blk[4]=blk[5]=blk[6]=blk[7]=blk[0]<<3;
+    *r0=*r1=*r2=*r3=*r4=*r5=*r6=*r7=b0<<3;
     return;
   }
 
-  x0 = (blk[0]<<11) + 128; /* for proper rounding in the fourth stage */
+  x0 = (b0<<11) + 128; /* for proper rounding in the fourth stage */
 
   /* first stage */
   x8 = W7*(x4+x5);
@@ -87,14 +87,14 @@ short blk[8];
   x4 = (181*(x4-x5)+128)>>8;
 
   /* fourth stage */
-  blk[0] = (x7+x1)>>8;
-  blk[1] = (x3+x2)>>8;
-  blk[2] = (x0+x4)>>8;
-  blk[3] = (x8+x6)>>8;
-  blk[4] = (x8-x6)>>8;
-  blk[5] = (x0-x4)>>8;
-  blk[6] = (x3-x2)>>8;
-  blk[7] = (x7-x1)>>8;
+  *r0 = (x7+x1)>>8;
+  *r1 = (x3+x2)>>8;
+  *r2 = (x0+x4)>>8;
+  *r3 = (x8+x6)>>8;
+  *r4 = (x8-x6)>>8;
+  *r5 = (x0-x4)>>8;
+  *r6 = (x3-x2)>>8;
+  *r7 = (x7-x1)>>8;
 }
 
 /* column (vertical) IDCT
@@ -106,21 +106,21 @@ short blk[8];
  * where: c[0]    = 1/1024
  *        c[1..7] = (1/1024)*sqrt(2)
  */
-static void idctcol(blk)
-short blk[8];
+static void idctcol(short b0, short b1, short b2, short b3, short b4, short b5, short b6, short b7,
+                    short *c0, short *c1, short *c2, short *c3, short *c4, short *c5, short *c6, short *c7)
 {
   int x0, x1, x2, x3, x4, x5, x6, x7, x8;
 
   /* shortcut */
-  if (!((x1 = (blk[8*4]<<8)) | (x2 = blk[8*6]) | (x3 = blk[8*2]) |
-        (x4 = blk[8*1]) | (x5 = blk[8*7]) | (x6 = blk[8*5]) | (x7 = blk[8*3])))
+  if (!((x1 = (b4<<8)) | (x2 = b6) | (x3 = b2) |
+        (x4 = b1) | (x5 = b7) | (x6 = b5) | (x7 = b3)))
   {
-    blk[8*0]=blk[8*1]=blk[8*2]=blk[8*3]=blk[8*4]=blk[8*5]=blk[8*6]=blk[8*7]=
-      iclip((blk[8*0]+32)>>6);
+    *c0=*c1=*c2=*c3=*c4=*c5=*c6=*c7=
+      iclip((b0+32)>>6);
     return;
   }
 
-  x0 = (blk[8*0]<<8) + 8192;
+  x0 = (b0<<8) + 8192;
 
   /* first stage */
   x8 = W7*(x4+x5) + 4;
@@ -150,14 +150,14 @@ short blk[8];
   x4 = (181*(x4-x5)+128)>>8;
 
   /* fourth stage */
-  blk[8*0] = iclip((x7+x1)>>14);
-  blk[8*1] = iclip((x3+x2)>>14);
-  blk[8*2] = iclip((x0+x4)>>14);
-  blk[8*3] = iclip((x8+x6)>>14);
-  blk[8*4] = iclip((x8-x6)>>14);
-  blk[8*5] = iclip((x0-x4)>>14);
-  blk[8*6] = iclip((x3-x2)>>14);
-  blk[8*7] = iclip((x7-x1)>>14);
+  *c0 = iclip((x7+x1)>>14);
+  *c1 = iclip((x3+x2)>>14);
+  *c2 = iclip((x0+x4)>>14);
+  *c3 = iclip((x8+x6)>>14);
+  *c4 = iclip((x8-x6)>>14);
+  *c5 = iclip((x0-x4)>>14);
+  *c6 = iclip((x3-x2)>>14);
+  *c7 = iclip((x7-x1)>>14);
 }
 
 /* two dimensional inverse discrete cosine transform */
@@ -189,11 +189,15 @@ void Top_Fast_IDCT(long long ibl[8], long long ibh[8], long long obl[8], long lo
     }
   }
 
-  for (i=0; i<8; i++)
-    idctrow(intl_block+8*i);
+  for (i=0; i<8; i++) {
+    idctrow(intl_block[8*i], intl_block[8*i+1], intl_block[8*i+2], intl_block[8*i+3], intl_block[8*i+4], intl_block[8*i+5], intl_block[8*i+6], intl_block[8*i+7],
+            &(intl_block[8*i]), &(intl_block[8*i+1]), &(intl_block[8*i+2]), &(intl_block[8*i+3]), &(intl_block[8*i+4]), &(intl_block[8*i+5]), &(intl_block[8*i+6]), &(intl_block[8*i+7]));
+  }
 
-  for (i=0; i<8; i++)
-    idctcol(intl_block+i);
+  for (i=0; i<8; i++) {
+    idctcol(intl_block[i+0*8], intl_block[i+1*8], intl_block[i+2*8], intl_block[i+3*8], intl_block[i+4*8], intl_block[i+5*8], intl_block[i+6*8], intl_block[i+7*8],
+            &(intl_block[i+0*8]), &(intl_block[i+1*8]), &(intl_block[i+2*8]), &(intl_block[i+3*8]), &(intl_block[i+4*8]), &(intl_block[i+5*8]), &(intl_block[i+6*8]), &(intl_block[i+7*8]));
+  }
 
   for (i=0; i<8; i++) {
     long long templ = 0, temph = 0;
@@ -221,4 +225,3 @@ static short iclip(int i)
   else if (i > 255) return 255;
   else return i;
 }
-
