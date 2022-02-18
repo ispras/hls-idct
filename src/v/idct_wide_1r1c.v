@@ -29,6 +29,7 @@ module Fast_IDCT_Wide_1R1C(input [`WIN*8-1:0] in, output [`WOUT*8*8-1:0] out, in
 
 wire [`WIM*8-1:0] rtc;
 reg  [`WIM*8*8-1:0] rtc_reg;
+reg  [`WIM*8*8-1:0] rtc_reg2;
 wire [`WOUT*8*8-1:0] out;
 reg  [`WOUT*8*8-1:0] out_reg;
 reg  [2:0] row_index;
@@ -58,15 +59,28 @@ idctrow ir(in[8*`WIN-1 : 7*`WIN],
            rtc[7*`WIM-1 : 6*`WIM],
            rtc[8*`WIM-1 : 7*`WIM]);
 
+`define COLUMN_GEN(name, index, width, decrement) \
+  { name[(index+1+8*7)*``width-1-decrement : (index+8*7)*``width],\
+    name[(index+1+8*6)*``width-1-decrement : (index+8*6)*``width],\
+    name[(index+1+8*5)*``width-1-decrement : (index+8*5)*``width],\
+    name[(index+1+8*4)*``width-1-decrement : (index+8*4)*``width],\
+    name[(index+1+8*3)*``width-1-decrement : (index+8*3)*``width],\
+    name[(index+1+8*2)*``width-1-decrement : (index+8*2)*``width],\
+    name[(index+1+8*1)*``width-1-decrement : (index+8*1)*``width],\
+    name[(index+1+8*0)*``width-1-decrement : (index+8*0)*``width] }
+
 `define COLUMN(name, index, width) \
-  { name[(index+1+8*7)*``width-1 : (index+8*7)*``width],\
-    name[(index+1+8*6)*``width-1 : (index+8*6)*``width],\
-    name[(index+1+8*5)*``width-1 : (index+8*5)*``width],\
-    name[(index+1+8*4)*``width-1 : (index+8*4)*``width],\
-    name[(index+1+8*3)*``width-1 : (index+8*3)*``width],\
-    name[(index+1+8*2)*``width-1 : (index+8*2)*``width],\
-    name[(index+1+8*1)*``width-1 : (index+8*1)*``width],\
-    name[(index+1+8*0)*``width-1 : (index+8*0)*``width] }
+  `COLUMN_GEN(name, index, width, 0)
+
+`define WOUT_TO_WIM(name) \
+  {4'h0, name[8*`WOUT-1:7*`WOUT], \
+   4'h0, name[7*`WOUT-1:6*`WOUT], \
+   4'h0, name[6*`WOUT-1:5*`WOUT], \
+   4'h0, name[5*`WOUT-1:4*`WOUT], \
+   4'h0, name[4*`WOUT-1:3*`WOUT], \
+   4'h0, name[3*`WOUT-1:2*`WOUT], \
+   4'h0, name[2*`WOUT-1:1*`WOUT], \
+   4'h0, name[1*`WOUT-1:0*`WOUT]}
 
 idctcol ic(rtc_col_reg[1*`WIM-1 : 0*`WIM],
            rtc_col_reg[2*`WIM-1 : 1*`WIM],
@@ -110,20 +124,29 @@ always @(posedge clock) begin
       4: rtc_reg[(5)*8*`WIM-1 : 4*8*`WIM] <= rtc;
       5: rtc_reg[(6)*8*`WIM-1 : 5*8*`WIM] <= rtc;
       6: rtc_reg[(7)*8*`WIM-1 : 6*8*`WIM] <= rtc;
-      7: begin rtc_reg[(8)*8*`WIM-1 : 7*8*`WIM] <= rtc; rd_reg <= 1; end
+      7: begin rtc_reg2[(7)*8*`WIM-1:0] <= rtc_reg[(7)*8*`WIM-1:0];
+               rtc_reg2[(8)*8*`WIM-1 : 7*8*`WIM] <= rtc; rd_reg <= 1; end
       endcase
     end
     if (rd_reg) begin
       case(col_index)
-      0: begin rtc_col_reg <= `COLUMN(rtc_reg, 0, `WIM); col_index <= 1; end
-      1: begin rtc_col_reg <= `COLUMN(rtc_reg, 1, `WIM); col_index <= 2; `COLUMN(out_reg, 0, `WOUT) <= out_col; end
-      2: begin rtc_col_reg <= `COLUMN(rtc_reg, 2, `WIM); col_index <= 3; `COLUMN(out_reg, 1, `WOUT) <= out_col; end
-      3: begin rtc_col_reg <= `COLUMN(rtc_reg, 3, `WIM); col_index <= 4; `COLUMN(out_reg, 2, `WOUT) <= out_col; end
-      4: begin rtc_col_reg <= `COLUMN(rtc_reg, 4, `WIM); col_index <= 5; `COLUMN(out_reg, 3, `WOUT) <= out_col; end
-      5: begin rtc_col_reg <= `COLUMN(rtc_reg, 5, `WIM); col_index <= 6; `COLUMN(out_reg, 4, `WOUT) <= out_col; end
-      6: begin rtc_col_reg <= `COLUMN(rtc_reg, 6, `WIM); col_index <= 7; `COLUMN(out_reg, 5, `WOUT) <= out_col; end
-      7: begin rtc_col_reg <= `COLUMN(rtc_reg, 7, `WIM); col_index <= 8; `COLUMN(out_reg, 6, `WOUT) <= out_col; end
-      8: begin done_reg <= 1; rd_reg <= 0; col_index <= 0;              `COLUMN(out_reg, 7, `WOUT) <= out_col; end
+      0: begin rtc_col_reg <= `COLUMN(rtc_reg2, 0, `WIM); col_index <= 1; end
+      1: begin rtc_col_reg <= `COLUMN(rtc_reg2, 1, `WIM); col_index <= 2; `COLUMN(rtc_reg2, 0, `WIM) <= `WOUT_TO_WIM(out_col); end
+      2: begin rtc_col_reg <= `COLUMN(rtc_reg2, 2, `WIM); col_index <= 3; `COLUMN(rtc_reg2, 1, `WIM) <= `WOUT_TO_WIM(out_col); end
+      3: begin rtc_col_reg <= `COLUMN(rtc_reg2, 3, `WIM); col_index <= 4; `COLUMN(rtc_reg2, 2, `WIM) <= `WOUT_TO_WIM(out_col); end
+      4: begin rtc_col_reg <= `COLUMN(rtc_reg2, 4, `WIM); col_index <= 5; `COLUMN(rtc_reg2, 3, `WIM) <= `WOUT_TO_WIM(out_col); end
+      5: begin rtc_col_reg <= `COLUMN(rtc_reg2, 5, `WIM); col_index <= 6; `COLUMN(rtc_reg2, 4, `WIM) <= `WOUT_TO_WIM(out_col); end
+      6: begin rtc_col_reg <= `COLUMN(rtc_reg2, 6, `WIM); col_index <= 7; `COLUMN(rtc_reg2, 5, `WIM) <= `WOUT_TO_WIM(out_col); end
+      7: begin rtc_col_reg <= `COLUMN(rtc_reg2, 7, `WIM); col_index <= 8; `COLUMN(rtc_reg2, 6, `WIM) <= `WOUT_TO_WIM(out_col); end
+      8: begin done_reg <= 1; rd_reg <= 0; col_index <= 0;
+               `COLUMN(out_reg, 0, `WOUT) <= `COLUMN_GEN(rtc_reg2, 0, `WIM, 4);
+               `COLUMN(out_reg, 1, `WOUT) <= `COLUMN_GEN(rtc_reg2, 1, `WIM, 4);
+               `COLUMN(out_reg, 2, `WOUT) <= `COLUMN_GEN(rtc_reg2, 2, `WIM, 4);
+               `COLUMN(out_reg, 3, `WOUT) <= `COLUMN_GEN(rtc_reg2, 3, `WIM, 4);
+               `COLUMN(out_reg, 4, `WOUT) <= `COLUMN_GEN(rtc_reg2, 4, `WIM, 4);
+               `COLUMN(out_reg, 5, `WOUT) <= `COLUMN_GEN(rtc_reg2, 5, `WIM, 4);
+               `COLUMN(out_reg, 6, `WOUT) <= `COLUMN_GEN(rtc_reg2, 6, `WIM, 4);
+               `COLUMN(out_reg, 7, `WOUT) <= out_col; end
       endcase
     end
     if (done_reg) begin
