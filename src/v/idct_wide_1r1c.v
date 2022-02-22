@@ -25,7 +25,8 @@
  /* compliance                           sE,  2.1.94       */
  /**********************************************************/
 
-module Fast_IDCT_Wide_1R1C(input [`WIN*8-1:0] in, output [`WOUT*8*8-1:0] out, input clock, input reset_n, input valid_in, output done, output ready);
+module Fast_IDCT_Wide_1R1C(input [`WIN*8-1:0] in, output [`WOUT*8*8-1:0] out, input clock, input reset_n,
+  input valid_in, output done, output [`WOUT*8-1:0] last_col);
 
 wire [`WIM*8-1:0] rtc;
 reg  [`WIM*8*8-1:0] rtc_reg;
@@ -33,14 +34,14 @@ reg  [`WIM*8*8-1:0] rtc_reg2;
 wire [`WOUT*8*8-1:0] out;
 reg  [`WOUT*8*8-1:0] out_reg;
 reg  [2:0] row_index;
-reg  [3:0] col_index;
+reg  [2:0] col_index;
 reg  valid_in_reg;
 wire done;
 reg  done_reg;
 reg  rd_reg;
 reg  [`WIM*8-1:0] rtc_col_reg;
 wire [`WOUT*8-1:0] out_col;
-wire ready;
+wire [`WOUT*8-1:0] last_col;
 
 idctrow ir(in[8*`WIN-1 : 7*`WIN],
            in[7*`WIN-1 : 6*`WIN],
@@ -59,28 +60,18 @@ idctrow ir(in[8*`WIN-1 : 7*`WIN],
            rtc[7*`WIM-1 : 6*`WIM],
            rtc[8*`WIM-1 : 7*`WIM]);
 
-`define COLUMN_GEN(name, index, width, decrement) \
-  { name[(index+1+8*7)*``width-1-decrement : (index+8*7)*``width],\
-    name[(index+1+8*6)*``width-1-decrement : (index+8*6)*``width],\
-    name[(index+1+8*5)*``width-1-decrement : (index+8*5)*``width],\
-    name[(index+1+8*4)*``width-1-decrement : (index+8*4)*``width],\
-    name[(index+1+8*3)*``width-1-decrement : (index+8*3)*``width],\
-    name[(index+1+8*2)*``width-1-decrement : (index+8*2)*``width],\
-    name[(index+1+8*1)*``width-1-decrement : (index+8*1)*``width],\
-    name[(index+1+8*0)*``width-1-decrement : (index+8*0)*``width] }
-
 `define COLUMN(name, index, width) \
-  `COLUMN_GEN(name, index, width, 0)
+  { name[(index+1+8*7)*``width-1 : (index+8*7)*``width],\
+    name[(index+1+8*6)*``width-1 : (index+8*6)*``width],\
+    name[(index+1+8*5)*``width-1 : (index+8*5)*``width],\
+    name[(index+1+8*4)*``width-1 : (index+8*4)*``width],\
+    name[(index+1+8*3)*``width-1 : (index+8*3)*``width],\
+    name[(index+1+8*2)*``width-1 : (index+8*2)*``width],\
+    name[(index+1+8*1)*``width-1 : (index+8*1)*``width],\
+    name[(index+1+8*0)*``width-1 : (index+8*0)*``width] }
 
-`define WOUT_TO_WIM(name) \
-  {4'h0, name[8*`WOUT-1:7*`WOUT], \
-   4'h0, name[7*`WOUT-1:6*`WOUT], \
-   4'h0, name[6*`WOUT-1:5*`WOUT], \
-   4'h0, name[5*`WOUT-1:4*`WOUT], \
-   4'h0, name[4*`WOUT-1:3*`WOUT], \
-   4'h0, name[3*`WOUT-1:2*`WOUT], \
-   4'h0, name[2*`WOUT-1:1*`WOUT], \
-   4'h0, name[1*`WOUT-1:0*`WOUT]}
+`define COL_OF_ARRAY(a, i) \
+ {a[i+8*7], a[i+8*6], a[i+8*5], a[i+8*4], a[i+8*3], a[i+8*2], a[i+8*1], a[i+8*0]}
 
 idctcol ic(rtc_col_reg[1*`WIM-1 : 0*`WIM],
            rtc_col_reg[2*`WIM-1 : 1*`WIM],
@@ -98,9 +89,6 @@ idctcol ic(rtc_col_reg[1*`WIM-1 : 0*`WIM],
            out_col[6*`WOUT-1 : 5*`WOUT],
            out_col[7*`WOUT-1 : 6*`WOUT],
            out_col[8*`WOUT-1 : 7*`WOUT]);
-
-assign out = out_reg;
-assign ready = ~rd_reg;
 
 always @(posedge clock) begin
   if (~reset_n) begin
@@ -125,36 +113,37 @@ always @(posedge clock) begin
       5: rtc_reg[(6)*8*`WIM-1 : 5*8*`WIM] <= rtc;
       6: rtc_reg[(7)*8*`WIM-1 : 6*8*`WIM] <= rtc;
       7: begin rtc_reg2[(7)*8*`WIM-1:0] <= rtc_reg[(7)*8*`WIM-1:0];
-               rtc_reg2[(8)*8*`WIM-1 : 7*8*`WIM] <= rtc; rd_reg <= 1; end
+               rtc_reg2[(8)*8*`WIM-1 : 7*8*`WIM] <= rtc;
+               rd_reg <= 1;
+               rtc_col_reg <= { rtc    [(1)*`WIM-1 : (0)*`WIM],
+                                rtc_reg[(1+8*6)*`WIM-1 : (8*6)*`WIM],
+                                rtc_reg[(1+8*5)*`WIM-1 : (8*5)*`WIM],
+                                rtc_reg[(1+8*4)*`WIM-1 : (8*4)*`WIM],
+                                rtc_reg[(1+8*3)*`WIM-1 : (8*3)*`WIM],
+                                rtc_reg[(1+8*2)*`WIM-1 : (8*2)*`WIM],
+                                rtc_reg[(1+8*1)*`WIM-1 : (8*1)*`WIM],
+                                rtc_reg[(1+8*0)*`WIM-1 : (8*0)*`WIM]};
+        end
       endcase
     end
     if (rd_reg) begin
       case(col_index)
-      0: begin rtc_col_reg <= `COLUMN(rtc_reg2, 0, `WIM); col_index <= 1; end
-      1: begin rtc_col_reg <= `COLUMN(rtc_reg2, 1, `WIM); col_index <= 2; `COLUMN(rtc_reg2, 0, `WIM) <= `WOUT_TO_WIM(out_col); end
-      2: begin rtc_col_reg <= `COLUMN(rtc_reg2, 2, `WIM); col_index <= 3; `COLUMN(rtc_reg2, 1, `WIM) <= `WOUT_TO_WIM(out_col); end
-      3: begin rtc_col_reg <= `COLUMN(rtc_reg2, 3, `WIM); col_index <= 4; `COLUMN(rtc_reg2, 2, `WIM) <= `WOUT_TO_WIM(out_col); end
-      4: begin rtc_col_reg <= `COLUMN(rtc_reg2, 4, `WIM); col_index <= 5; `COLUMN(rtc_reg2, 3, `WIM) <= `WOUT_TO_WIM(out_col); end
-      5: begin rtc_col_reg <= `COLUMN(rtc_reg2, 5, `WIM); col_index <= 6; `COLUMN(rtc_reg2, 4, `WIM) <= `WOUT_TO_WIM(out_col); end
-      6: begin rtc_col_reg <= `COLUMN(rtc_reg2, 6, `WIM); col_index <= 7; `COLUMN(rtc_reg2, 5, `WIM) <= `WOUT_TO_WIM(out_col); end
-      7: begin rtc_col_reg <= `COLUMN(rtc_reg2, 7, `WIM); col_index <= 8; `COLUMN(rtc_reg2, 6, `WIM) <= `WOUT_TO_WIM(out_col); end
-      8: begin done_reg <= 1; rd_reg <= 0; col_index <= 0;
-               `COLUMN(out_reg, 0, `WOUT) <= `COLUMN_GEN(rtc_reg2, 0, `WIM, 4);
-               `COLUMN(out_reg, 1, `WOUT) <= `COLUMN_GEN(rtc_reg2, 1, `WIM, 4);
-               `COLUMN(out_reg, 2, `WOUT) <= `COLUMN_GEN(rtc_reg2, 2, `WIM, 4);
-               `COLUMN(out_reg, 3, `WOUT) <= `COLUMN_GEN(rtc_reg2, 3, `WIM, 4);
-               `COLUMN(out_reg, 4, `WOUT) <= `COLUMN_GEN(rtc_reg2, 4, `WIM, 4);
-               `COLUMN(out_reg, 5, `WOUT) <= `COLUMN_GEN(rtc_reg2, 5, `WIM, 4);
-               `COLUMN(out_reg, 6, `WOUT) <= `COLUMN_GEN(rtc_reg2, 6, `WIM, 4);
-               `COLUMN(out_reg, 7, `WOUT) <= out_col; end
+      0: begin rtc_col_reg <= `COLUMN(rtc_reg2, 1, `WIM); `COLUMN(out_reg, 0, `WOUT) <= out_col; end
+      1: begin rtc_col_reg <= `COLUMN(rtc_reg2, 2, `WIM); `COLUMN(out_reg, 1, `WOUT) <= out_col; end
+      2: begin rtc_col_reg <= `COLUMN(rtc_reg2, 3, `WIM); `COLUMN(out_reg, 2, `WOUT) <= out_col; end
+      3: begin rtc_col_reg <= `COLUMN(rtc_reg2, 4, `WIM); `COLUMN(out_reg, 3, `WOUT) <= out_col; end
+      4: begin rtc_col_reg <= `COLUMN(rtc_reg2, 5, `WIM); `COLUMN(out_reg, 4, `WOUT) <= out_col; end
+      5: begin rtc_col_reg <= `COLUMN(rtc_reg2, 6, `WIM); `COLUMN(out_reg, 5, `WOUT) <= out_col; end
+      6: begin rtc_col_reg <= `COLUMN(rtc_reg2, 7, `WIM); `COLUMN(out_reg, 6, `WOUT) <= out_col; done_reg <= 1; end
+      7: begin if (row_index != 7) rd_reg <= 0;           `COLUMN(out_reg, 7, `WOUT) <= out_col; done_reg <= 0; end
       endcase
-    end
-    if (done_reg) begin
-      done_reg <= 0;
+      col_index <= col_index + 1;
     end
   end
 end
 assign done = done_reg;
+assign last_col = out_col;
+assign out = out_reg;
 
 endmodule // Fast_IDCT_Wide_Pipe
 
@@ -162,16 +151,18 @@ module wide_axi_stream_wrappered_1r1c_idct(output [`WOUT*8-1:0] master_tdata, ou
                                            input [`WIN*8-1:0] slave_tdata, input slave_tvalid, output slave_tready,
                                            input clock, input reset_n);
 reg [`WOUT-1:0] out_buff [63:0];
+wire [`WOUT*8*8-1:0] outt;
 reg [2:0] in_counter;
 reg [2:0] out_counter;
 reg [2:0] sample_out;
 reg start_out;
 reg ready;
 wire [`WOUT*8*8-1:0] out;
+wire [`WOUT*8-1:0] last_col;
 wire done;
 reg done_reg;
-wire idct_ready;
-Fast_IDCT_Wide_1R1C idct(slave_tdata, out, clock, reset_n, slave_tvalid, done, idct_ready);
+assign outt = `ARRAY_TO_BITVECTOR(out_buff);
+Fast_IDCT_Wide_1R1C idct(slave_tdata, out, clock, reset_n, slave_tvalid, done, last_col);
 always @(posedge clock) begin
   if (~reset_n) begin
     `ARRAY_TO_BITVECTOR(out_buff) <= 0;
@@ -185,9 +176,11 @@ always @(posedge clock) begin
     if (done || done_reg) begin
       if (~start_out) begin
         `ARRAY_TO_BITVECTOR(out_buff) <= out;
+        `COL_OF_ARRAY(out_buff, 7) <= last_col;
         start_out <= 1;
         ready <= 1;
         done_reg <= 0;
+        out_counter <= out_counter + 1;
       end else begin
         ready <= 0;
         done_reg <= 1;
@@ -203,7 +196,10 @@ always @(posedge clock) begin
     end
   end
 end
-assign master_tdata = start_out ? `ROW_OF_ARRAY(out_buff, out_counter*8) : 0;
-assign master_tvalid = start_out ? 1 : 0;
-assign slave_tready = ready & idct_ready;
+assign master_tdata = done ? {out[`WOUT-1:0], out[`WOUT*2-1:`WOUT], out[`WOUT*3-1:`WOUT*2], out[`WOUT*4-1:`WOUT*3],
+                              out[`WOUT*5-1:`WOUT*4], out[`WOUT*6-1:`WOUT*5], out[`WOUT*7-1:`WOUT*6], last_col[`WOUT-1:0]} :
+                      done_reg ? `ROW_OF_ARRAY(out_buff, 0) :
+                      start_out ? `ROW_OF_ARRAY(out_buff, out_counter*8) : 0;
+assign master_tvalid = (start_out || done || done_reg) ? 1 : 0;
+assign slave_tready = ready;
 endmodule
