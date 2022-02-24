@@ -151,7 +151,6 @@ module wide_axi_stream_wrappered_1r1c_idct(output [`WOUT*8-1:0] master_tdata, ou
                                            input [`WIN*8-1:0] slave_tdata, input slave_tvalid, output slave_tready,
                                            input clock, input reset_n);
 reg [`WOUT-1:0] out_buff [63:0];
-wire [`WOUT*8*8-1:0] outt;
 reg [2:0] in_counter;
 reg [2:0] out_counter;
 reg [2:0] sample_out;
@@ -161,7 +160,6 @@ wire [`WOUT*8*8-1:0] out;
 wire [`WOUT*8-1:0] last_col;
 wire done;
 reg done_reg;
-assign outt = `ARRAY_TO_BITVECTOR(out_buff);
 Fast_IDCT_Wide_1R1C idct(slave_tdata, out, clock, reset_n, slave_tvalid, done, last_col);
 always @(posedge clock) begin
   if (~reset_n) begin

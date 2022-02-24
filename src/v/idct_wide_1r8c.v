@@ -131,6 +131,7 @@ always @(posedge clock) begin
         start_out <= 1;
         ready <= 1;
         done_reg <= 0;
+        out_counter <= out_counter + 1;
       end else begin
         ready <= 0;
         done_reg <= 1;
@@ -146,7 +147,10 @@ always @(posedge clock) begin
     end
   end
 end
-assign master_tdata = start_out ? `ROW_OF_ARRAY(out_buff, out_counter*8) : 0;
-assign master_tvalid = start_out ? 1 : 0;
+assign master_tdata = done ? {out[`WOUT-1:0], out[`WOUT*2-1:`WOUT], out[`WOUT*3-1:`WOUT*2], out[`WOUT*4-1:`WOUT*3],
+                              out[`WOUT*5-1:`WOUT*4], out[`WOUT*6-1:`WOUT*5], out[`WOUT*7-1:`WOUT*6], out[`WOUT*8-1:`WOUT*7]} :
+                      done_reg ? `ROW_OF_ARRAY(out_buff, 0) :
+                      start_out ? `ROW_OF_ARRAY(out_buff, out_counter*8) : 0;
+assign master_tvalid = (start_out || done || done_reg) ? 1 : 0;
 assign slave_tready = ready;
 endmodule
