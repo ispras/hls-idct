@@ -23,6 +23,8 @@ package IdctTestbench;
 import Idct::*;
 import Vector::*;
 
+/* convenience functions */
+
 function Action printVector(String s, OutDataType data);
   action
     Integer dim = valueOf(DataDim);
