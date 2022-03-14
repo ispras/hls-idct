@@ -166,20 +166,99 @@ class IDCTCol extends Module {
 
 class IDCT extends Module {
   val io = IO(new Bundle {
-    val iblk = Input(Vec(8*8, SInt(Def.INPUT_WIDTH.W)))
-    val oblk = Output(Vec(8*8, SInt(Def.OUTPUT_WIDTH.W)))
+    val i_tdata  = Input(UInt((8*Def.INPUT_WIDTH).W)) // Row F[u,*]
+    val i_tvalid = Input(Bool())
+    val i_tready = Input(Bool())
+    val o_tdata  = Output(UInt((8*Def.OUTPUT_WIDTH).W)) // Row f[i,*]
+    val o_tvalid = Output(Bool())
+    val o_tready = Output(Bool())
   })
 
-  val idctrows = VecInit(Seq.fill(8) { Module(new IDCTRow).io })
-  val idctcols = VecInit(Seq.fill(8) { Module(new IDCTCol).io })
+  val imask = (1.U << Def.INPUT_WIDTH) - 1.U
+
+  val blk_row = Reg(Vec(8*8, SInt(Def.TEMP_WIDTH.W)))
+  val blk_tmp = Reg(Vec(8*8, SInt(Def.TEMP_WIDTH.W)))
+  val blk_col = Reg(Vec(8*8, SInt(Def.OUTPUT_WIDTH.W)))
+  val blk_out = Reg(Vec(8*8, SInt(Def.OUTPUT_WIDTH.W)))
+
+  val idctrow = Module(new IDCTRow)
+  val idctcol = Module(new IDCTCol)
+
+  val idx_row = RegInit(0.U(3.W))
+  val idx_col = RegInit(0.U(3.W))
+  val idx_out = RegInit(0.U(3.W))
+
+  val copy_row_to_tmp_rdy = RegInit(false.B)
+  val copy_col_to_out_rdy = RegInit(false.B)
+
+  val ready = RegInit(true.B)
+  val cols  = RegInit(false.B)
+  val send  = RegInit(false.B)
 
   for (i <- 0 to 7) {
-    for (j <- 0 to 7) {
-      idctrows(i).row(j) := io.iblk(8 * i + j)
-      idctcols(j).col(i) := idctrows(i).out(j)
-      io.oblk(8 * i + j) := idctcols(j).out(i)
-    }
+    idctrow.io.row(i) := ((io.i_tdata >> (i * Def.INPUT_WIDTH)) & imask).asSInt()
   }
+  for (i <- 0 to 7) {
+    blk_row((idx_row << 3) + i.U) := idctrow.io.out(i)
+  }
+  for (i <- 0 to 7) {
+    idctcol.io.col(i) := blk_tmp((i.U << 3) + idx_col)
+  }
+  for (i <- 0 to 7) {
+    blk_col((i.U << 3) + idx_col) := idctcol.io.out(i)
+  }
+  val tdata = Wire(Vec(8, SInt(Def.OUTPUT_WIDTH.W)))
+  for (i <- 0 to 7) {
+    tdata(i) := blk_out((idx_out << 3) + i.U)
+  }
+
+  ready := true.B // FIXME:
+
+  // Process an input row.
+  when (io.i_tvalid & ready) {
+    idx_row := idx_row + 1.U
+  }
+
+  // Copy the block for further column processing.
+  when (idx_row === 7.U) {
+    copy_row_to_tmp_rdy := true.B
+  }
+  when (copy_row_to_tmp_rdy & ~cols) {
+    for (i <- 0 to 63) {
+      blk_tmp(i) := blk_row(i)
+    }
+    copy_row_to_tmp_rdy := false.B
+    cols := true.B
+  }
+
+  // Process a column.
+  when (cols) {
+    idx_col := idx_col + 1.U
+  }
+
+  // Copy the block for further transmission.
+  when (idx_col === 7.U) {
+    copy_col_to_out_rdy := true.B
+    cols := false.B
+  }
+  when (copy_col_to_out_rdy & ~send) {
+    for (i <- 0 to 63) {
+      blk_out(i) := blk_col(i)
+    }
+    copy_col_to_out_rdy := false.B
+    send := true.B
+  }
+
+  when (send & io.i_tready) {
+    idx_out := idx_out + 1.U
+  }
+  when (idx_out === 7.U) {
+    send := false.B
+  }
+
+  io.o_tdata  := tdata.asUInt()
+  io.o_tvalid := send
+  io.o_tready := ready
 }
 
 object IDCTDriver extends App {
