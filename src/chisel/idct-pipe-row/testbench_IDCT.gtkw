@@ -1,18 +1,18 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Mon Jan 31 15:27:33 2022
+[*] Tue Mar 15 11:23:08 2022
 [*]
-[dumpfile] "/home/kamkin/work/hls-idct/src/chisel/testbench_IDCTAXIrow.vcd"
-[dumpfile_mtime] "Mon Jan 31 15:26:58 2022"
-[dumpfile_size] 441953
-[savefile] "/home/kamkin/work/hls-idct/src/chisel/testbench_IDCTAXIrow.gtkw"
-[timestart] 266
+[dumpfile] "/home/kamkin/work/hls-idct/src/chisel/idct-pipe-row/testbench_IDCT.vcd"
+[dumpfile_mtime] "Tue Mar 15 11:17:26 2022"
+[dumpfile_size] 394191
+[savefile] "/home/kamkin/work/hls-idct/src/chisel/idct-pipe-row/testbench_IDCT.gtkw"
+[timestart] 0
 [size] 1920 1136
 [pos] -1 -1
-*-6.000000 709 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-6.000000 90 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testbench.
 [sst_width] 241
-[signals_width] 194
+[signals_width] 206
 [sst_expanded] 1
 [sst_vpaned_height] 360
 @28
@@ -27,10 +27,17 @@ testbench.i_tready
 testbench.i_tvalid
 @200
 -
-@23
+@22
 testbench.o_tdata[71:0]
 @28
 testbench.o_tready
 testbench.o_tvalid
+testbench.idct.copy_row_to_tmp_rdy
+testbench.idct.copy_col_to_out_rdy
+testbench.idct.idx_row[2:0]
+testbench.idct.idx_col[2:0]
+testbench.idct.idx_out[2:0]
+@29
+testbench.idct.idct_col_processing
 [pattern_trace] 1
 [pattern_trace] 0
