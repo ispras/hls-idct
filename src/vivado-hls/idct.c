@@ -221,4 +221,3 @@ static short iclip(int i)
   else if (i > 255) return 255;
   else return i;
 }
-
