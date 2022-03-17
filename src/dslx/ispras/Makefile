@@ -3,7 +3,8 @@
 
 PWD              = $(shell pwd)
 
-stages         ?= 1
+# number of stages that is related to maximum-quality IDCT design
+stages         ?= 8
 
 SOURCE_FILE     = idct.x
 SOURCE          = $(PWD)/$(SOURCE_FILE)
