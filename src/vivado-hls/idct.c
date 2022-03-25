@@ -179,7 +179,6 @@ void Top_Fast_IDCT(long long ibl[8], long long ibh[8], long long obl[8], long lo
 #pragma HLS INTERFACE axis port=ibh
 #pragma HLS INTERFACE axis port=obl
 #pragma HLS INTERFACE axis port=obh
-#pragma HLS PIPELINE
   int i, j;
   short intl_block[64];
   for (i=0; i<8; i++) {
