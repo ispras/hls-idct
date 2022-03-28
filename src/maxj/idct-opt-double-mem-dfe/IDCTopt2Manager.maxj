@@ -1,0 +1,55 @@
+/*
+ * Copyright 2021 ISP RAS (http://www.ispras.ru)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
+ * the License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+package idct;
+
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+import com.maxeler.maxcompiler.v2.managers.custom.DFELink;
+import com.maxeler.maxcompiler.v2.managers.custom.ManagerClock;
+import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
+
+import com.maxeler.platform.max5.manager.MAX5CManager;;
+
+public class IDCTopt2Manager extends MAX5CManager {
+
+	public static final String kernelName = "IDCToptKernel";
+
+	public IDCTopt2Manager(EngineParameters params) {
+		super(params);
+
+		final KernelBlock kernel = addKernel(new IDCTopt2Kernel(makeKernelParameters(kernelName)));
+		final DFELink x = addStreamFromCPU("row_in");
+		kernel.getInput("row_in") <== x;
+
+		final DFELink y = addStreamToCPU("block_out");
+		y <== kernel.getOutput("block_out");
+		addMaxFileConstant("blockDim", IDCTopt2Kernel.blockDim);
+		
+		setDefaultStreamClockFrequency(403);
+		/*popDefaultClock();
+		
+		ManagerClock clk = generateStaticClock("clock_" + kernelName, 500);
+		pushDefaultClock(clk);
+		setHasStreamStatus(true);*/
+	}
+
+	public static void main(final String[] argv) {
+		final EngineParameters params = new EngineParameters(argv);
+		final IDCTopt2Manager manager = new IDCTopt2Manager(params);
+		manager.build();
+	}
+
+}
